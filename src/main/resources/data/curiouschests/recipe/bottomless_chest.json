@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "PPP",
+    "ECE",
+    "PPP"
+  ],
+  "key": {
+    "P": {
+      "item": "minecraft:prismarine_bricks"
+    },
+    "E": {
+      "item": "minecraft:ender_chest"
+    },
+    "C": {
+      "item": "minecraft:heart_of_the_sea"
+    }
+  },
+  "result": {
+    "id": "curiouschests:bottomless_chest",
+    "count": 1
+  }
+}

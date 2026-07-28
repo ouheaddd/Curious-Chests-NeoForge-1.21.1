@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "NBN",
+    "BCB",
+    "NBN"
+  ],
+  "key": {
+    "N": {
+      "item": "minecraft:nether_bricks"
+    },
+    "B": {
+      "item": "minecraft:blaze_rod"
+    },
+    "C": {
+      "item": "minecraft:chest"
+    }
+  },
+  "result": {
+    "id": "curiouschests:infernal_chest",
+    "count": 1
+  }
+}

@@ -1,0 +1,15 @@
+Project: Curious Chests
+Minecraft: 1.21.1
+Loader: NeoForge 21.1.242
+Java: 21
+Mod ID: curiouschests
+Base package: com.overyourhead.curiouschests
+Developer: overyourhead
+Version: 0.3.0
+
+Registered chests, in creative-tab order:
+1. bottomless_chest
+2. infernal_chest
+3. ender_dispatch_chest
+4. builders_chest
+5. collectors_chest
