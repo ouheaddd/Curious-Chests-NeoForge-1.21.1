@@ -1,4 +1,4 @@
-# Implementation status — 0.3.0
+# Implementation status — 0.3.1
 
 ## Shared chest lifecycle
 
@@ -10,7 +10,7 @@
 
 ## Bottomless Chest
 
-- 63 ordinary slots.
+- 63 deep slots; all normally stackable items can reach 256 units in one visible slot.
 - Shared physical storage, not player-bound storage.
 - Costs 7 raw experience points on every successful survival-mode opening.
 - Creative-mode players are exempt.
@@ -28,7 +28,7 @@
 ## Ender Dispatch Chest
 
 - 36 slots.
-- When placed, moves one available stack every four ticks into storage within 8 blocks.
+- When placed, moves one available stack every 50 ticks (2.5 seconds) into storage within 8 blocks.
 - First fills storage already containing the exact item; otherwise uses nearest empty capacity.
 - Skips Curious Chests blocks and furnace-type processing blocks.
 - Emits portal particles and a teleport sound for successful transfers.
@@ -44,15 +44,15 @@
 ## Collector's Chest
 
 - 36 slots.
-- Scans an 8-block radius every two ticks.
-- Valid dropped items visibly accelerate toward the chest.
+- Scans an 8-block radius every tick for smooth motion.
+- Valid dropped items are smoothly steered toward the chest rather than snapped by a sudden velocity change.
+- Attraction uses real collision shapes: full walls block it, while an open ray through a partial block can pass.
 - Items are inserted only after reaching the chest.
 - Full chests do not pull items they cannot accept.
 
 ## Intentional limitations
 
-- Placeholder block, item, and GUI art is included.
+- Placeholder block and item art is included. Five independent editable GUI PNG templates are included.
 - Chest block models are static; lid opening animation is not implemented yet.
-- Bottomless Chest uses ordinary slots rather than stack counts above vanilla limits.
 - Ender Dispatch currently targets block entities implementing vanilla `Container`; capability-only third-party storage can be added later.
-- No configuration screen, upgrades, filters, accessory slots, portable opening, or mixin hooks are used in 0.3.0.
+- No configuration screen, upgrades, filters, accessory slots, portable opening, or mixin hooks are used in 0.3.1.

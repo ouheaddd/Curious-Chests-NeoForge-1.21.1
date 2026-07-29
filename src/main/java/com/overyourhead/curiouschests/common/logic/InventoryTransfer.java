@@ -12,7 +12,7 @@ public final class InventoryTransfer {
         for (int slot = 0; slot < target.getContainerSize(); slot++) {
             ItemStack present = target.getItem(slot);
             if (!present.isEmpty() && ItemStack.isSameItemSameComponents(present, source)) {
-                int limit = Math.min(target.getMaxStackSize(present), present.getMaxStackSize());
+                int limit = target.getMaxStackSize(present);
                 if (present.getCount() < limit) return true;
             }
         }
@@ -30,7 +30,7 @@ public final class InventoryTransfer {
         for (int i = 0; i < target.getContainerSize() && !source.isEmpty(); i++) {
             ItemStack present = target.getItem(i);
             if (!present.isEmpty() && ItemStack.isSameItemSameComponents(present, source)) {
-                int room = Math.min(target.getMaxStackSize(present), present.getMaxStackSize()) - present.getCount();
+                int room = target.getMaxStackSize(present) - present.getCount();
                 if (room > 0) {
                     int amount = Math.min(room, source.getCount());
                     present.grow(amount);
@@ -46,7 +46,7 @@ public final class InventoryTransfer {
                 if (target.getItem(i).isEmpty() && target.canPlaceItem(i, source)) {
                     int amount = Math.min(
                             source.getCount(),
-                            Math.min(target.getMaxStackSize(source), source.getMaxStackSize())
+                            target.getMaxStackSize(source)
                     );
                     target.setItem(i, source.copyWithCount(amount));
                     source.shrink(amount);

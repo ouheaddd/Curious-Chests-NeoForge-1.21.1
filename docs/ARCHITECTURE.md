@@ -15,4 +15,4 @@ A loose chest item never opens or ticks. No networking or accessory APIs are req
 
 `ModCreativeTabs` owns the dedicated creative tab. It iterates `ModItems.ITEMS.getEntries()`, so registered items appear automatically in registration order.
 
-No mixins are required for 0.3.0. The package and config remain intentionally present for future narrow compatibility hooks.
+No mixins are required for 0.3.1. The package and config remain intentionally present for future narrow compatibility hooks.

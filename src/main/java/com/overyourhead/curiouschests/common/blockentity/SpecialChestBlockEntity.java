@@ -8,6 +8,7 @@ import com.overyourhead.curiouschests.common.logic.CollectorLogic;
 import com.overyourhead.curiouschests.common.logic.DispatchLogic;
 import com.overyourhead.curiouschests.common.logic.InfernalLogic;
 import com.overyourhead.curiouschests.common.menu.SpecialChestMenu;
+import com.overyourhead.curiouschests.common.storage.BottomlessStorage;
 import com.overyourhead.curiouschests.core.ModBlockEntities;
 import com.overyourhead.curiouschests.core.ModMenus;
 import net.minecraft.core.BlockPos;
@@ -29,12 +30,16 @@ import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.wrapper.InvWrapper;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 public final class SpecialChestBlockEntity extends BaseContainerBlockEntity {
+    private static final String BOTTOMLESS_DEEP_FORMAT_TAG = "BottomlessDeepFormat";
+
     private NonNullList<ItemStack> items;
     private int workTicker;
+    private int dispatchCooldown = DispatchLogic.TRANSFER_DELAY_TICKS;
     private final IItemHandler itemHandler = new InvWrapper(this);
     private final Map<UUID, BuilderSupplyLogic.HeldSnapshot> builderSnapshots = new HashMap<>();
 
@@ -58,8 +63,30 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity {
     }
 
     @Override
+    public void setChanged() {
+        super.setChanged();
+        if (kind() == ChestKind.ENDER_DISPATCH) {
+            dispatchCooldown = DispatchLogic.TRANSFER_DELAY_TICKS;
+        }
+    }
+
+    @Override
     public int getContainerSize() {
         return kind().slots();
+    }
+
+    @Override
+    public int getMaxStackSize() {
+        return kind() == ChestKind.BOTTOMLESS
+                ? BottomlessStorage.ABSOLUTE_SLOT_LIMIT
+                : super.getMaxStackSize();
+    }
+
+    @Override
+    public int getMaxStackSize(ItemStack stack) {
+        return kind() == ChestKind.BOTTOMLESS
+                ? BottomlessStorage.maxPerSlot(stack)
+                : super.getMaxStackSize(stack);
     }
 
     @Override
@@ -70,6 +97,25 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity {
     @Override
     protected void setItems(NonNullList<ItemStack> items) {
         this.items = items;
+    }
+
+    @Override
+    public void setItem(int slot, ItemStack stack) {
+        if (kind() != ChestKind.BOTTOMLESS) {
+            super.setItem(slot, stack);
+            if (kind() == ChestKind.ENDER_DISPATCH) {
+                dispatchCooldown = DispatchLogic.TRANSFER_DELAY_TICKS;
+            }
+            return;
+        }
+
+        ItemStack stored = stack;
+        int limit = BottomlessStorage.maxPerSlot(stack);
+        if (!stack.isEmpty() && stack.getCount() > limit) {
+            stored = stack.copyWithCount(limit);
+        }
+        items.set(slot, stored);
+        setChanged();
     }
 
     @Override
@@ -103,34 +149,79 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity {
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
-        ContainerHelper.saveAllItems(tag, items, registries);
+
+        if (kind() == ChestKind.BOTTOMLESS) {
+            ContainerHelper.saveAllItems(tag, BottomlessStorage.splitForSerialization(items), registries);
+            tag.putBoolean(BOTTOMLESS_DEEP_FORMAT_TAG, true);
+        } else {
+            ContainerHelper.saveAllItems(tag, items, registries);
+        }
+
         tag.putInt("WorkTicker", workTicker);
+        tag.putInt("DispatchCooldown", dispatchCooldown);
     }
 
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
-        items = NonNullList.withSize(getContainerSize(), ItemStack.EMPTY);
-        ContainerHelper.loadAllItems(tag, items, registries);
+
+        if (kind() == ChestKind.BOTTOMLESS && tag.getBoolean(BOTTOMLESS_DEEP_FORMAT_TAG)) {
+            NonNullList<ItemStack> serialized = NonNullList.withSize(
+                    BottomlessStorage.SERIALIZED_SLOTS,
+                    ItemStack.EMPTY
+            );
+            ContainerHelper.loadAllItems(tag, serialized, registries);
+            items = BottomlessStorage.mergeSerialized(serialized);
+        } else {
+            // Also reads old 0.3.0 Bottomless Chest data where every visible
+            // slot still held a normal vanilla-sized stack.
+            items = NonNullList.withSize(getContainerSize(), ItemStack.EMPTY);
+            ContainerHelper.loadAllItems(tag, items, registries);
+        }
+
         workTicker = tag.getInt("WorkTicker");
+        dispatchCooldown = tag.contains("DispatchCooldown")
+                ? tag.getInt("DispatchCooldown")
+                : DispatchLogic.TRANSFER_DELAY_TICKS;
     }
 
     @Override
     protected void collectImplicitComponents(net.minecraft.core.component.DataComponentMap.Builder builder) {
         super.collectImplicitComponents(builder);
-        builder.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(items));
+        NonNullList<ItemStack> componentItems = kind() == ChestKind.BOTTOMLESS
+                ? BottomlessStorage.splitForSerialization(items)
+                : items;
+        builder.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(componentItems));
     }
 
     @Override
     protected void applyImplicitComponents(DataComponentInput input) {
         super.applyImplicitComponents(input);
-        input.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY).copyInto(items);
+        ItemContainerContents contents = input.getOrDefault(
+                DataComponents.CONTAINER,
+                ItemContainerContents.EMPTY
+        );
+
+        if (kind() == ChestKind.BOTTOMLESS) {
+            List<ItemStack> stored = contents.stream().toList();
+            NonNullList<ItemStack> serialized = NonNullList.withSize(
+                    BottomlessStorage.SERIALIZED_SLOTS,
+                    ItemStack.EMPTY
+            );
+            for (int index = 0; index < Math.min(serialized.size(), stored.size()); index++) {
+                serialized.set(index, stored.get(index).copy());
+            }
+            items = BottomlessStorage.mergeSerialized(serialized);
+        } else {
+            contents.copyInto(items);
+        }
     }
 
     @Override
     public void removeComponentsFromTag(CompoundTag tag) {
         super.removeComponentsFromTag(tag);
         tag.remove("Items");
+        tag.remove(BOTTOMLESS_DEEP_FORMAT_TAG);
     }
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, SpecialChestBlockEntity chest) {
@@ -141,9 +232,16 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity {
             if (InfernalLogic.smeltOne(level, pos, state, chest)) chest.setChanged();
         }
 
-        if (chest.kind() == ChestKind.ENDER_DISPATCH
-                && chest.workTicker % DispatchLogic.TICK_INTERVAL == 0) {
-            if (DispatchLogic.dispatchOne(level, pos, chest)) chest.setChanged();
+        if (chest.kind() == ChestKind.ENDER_DISPATCH) {
+            if (chest.dispatchCooldown > 0) {
+                chest.dispatchCooldown--;
+            } else {
+                boolean moved = DispatchLogic.dispatchOne(level, pos, chest);
+                chest.dispatchCooldown = moved
+                        ? DispatchLogic.TRANSFER_DELAY_TICKS
+                        : DispatchLogic.RETRY_DELAY_TICKS;
+                if (moved) chest.setChanged();
+            }
         }
 
         if (level instanceof ServerLevel serverLevel

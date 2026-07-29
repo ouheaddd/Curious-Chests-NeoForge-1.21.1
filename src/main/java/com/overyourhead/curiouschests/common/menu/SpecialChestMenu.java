@@ -3,6 +3,7 @@ package com.overyourhead.curiouschests.common.menu;
 import com.overyourhead.curiouschests.common.chest.ChestKind;
 import com.overyourhead.curiouschests.common.chest.ChestRules;
 import com.overyourhead.curiouschests.common.logic.InfernalLogic;
+import com.overyourhead.curiouschests.common.storage.BottomlessStorage;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
@@ -25,10 +26,27 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
                 type,
                 id,
                 inventory,
-                new SimpleContainer(kind.slots()),
+                createClientContainer(kind),
                 kind,
                 player -> true
         );
+    }
+
+
+    private static Container createClientContainer(ChestKind kind) {
+        if (kind != ChestKind.BOTTOMLESS) return new SimpleContainer(kind.slots());
+
+        return new SimpleContainer(kind.slots()) {
+            @Override
+            public int getMaxStackSize() {
+                return BottomlessStorage.ABSOLUTE_SLOT_LIMIT;
+            }
+
+            @Override
+            public int getMaxStackSize(ItemStack stack) {
+                return BottomlessStorage.maxPerSlot(stack);
+            }
+        };
     }
 
     public static SpecialChestMenu server(
@@ -88,6 +106,33 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return allowPlacement && ChestRules.canStore(stack) && super.mayPlace(stack);
+            }
+
+            @Override
+            public int getMaxStackSize() {
+                return kind == ChestKind.BOTTOMLESS
+                        ? BottomlessStorage.ABSOLUTE_SLOT_LIMIT
+                        : super.getMaxStackSize();
+            }
+
+            @Override
+            public int getMaxStackSize(ItemStack stack) {
+                return kind == ChestKind.BOTTOMLESS
+                        ? BottomlessStorage.maxPerSlot(stack)
+                        : super.getMaxStackSize(stack);
+            }
+
+            @Override
+            public ItemStack remove(int amount) {
+                if (kind != ChestKind.BOTTOMLESS || getItem().isEmpty()) {
+                    return super.remove(amount);
+                }
+
+                // Never place an oversized stack on the player's cursor. A normal
+                // click takes at most one ordinary stack while the deep remainder
+                // stays in the chest. Shift-click can still distribute more across
+                // several player inventory slots through quickMoveStack.
+                return super.remove(Math.min(amount, getItem().getMaxStackSize()));
             }
         });
     }

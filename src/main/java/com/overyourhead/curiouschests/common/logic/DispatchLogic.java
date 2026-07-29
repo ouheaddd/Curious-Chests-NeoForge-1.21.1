@@ -14,10 +14,13 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public final class DispatchLogic {
-    public static final int TICK_INTERVAL = 4;
+    public static final int TRANSFER_DELAY_TICKS = 50;
+    public static final int RETRY_DELAY_TICKS = 10;
     public static final int RADIUS = 8;
 
     private DispatchLogic() {}
@@ -33,20 +36,34 @@ public final class DispatchLogic {
             ItemStack moving = original.copy();
             int before = moving.getCount();
             Target visualTarget = null;
+            Set<BlockPos> preferredPositions = new HashSet<>();
 
-            // Prefer storage that already contains the exact item.
+            /*
+             * A container that already contains the same ITEM ID is always a
+             * sorting destination before a closer empty container. Components
+             * are deliberately ignored for choosing the destination, so tools
+             * such as two diamond swords still end up in the same chest. The
+             * normal insertion rules remain component-safe: unlike stacks do
+             * not merge, but they may occupy another empty slot in that chest.
+             */
             for (Target target : targets) {
-                if (!contains(target.container(), moving)) continue;
-                if (InventoryTransfer.insert(target.container(), moving, true) > 0 && visualTarget == null) {
+                if (!containsSameItem(target.container(), moving)) continue;
+
+                preferredPositions.add(target.pos());
+                int inserted = InventoryTransfer.insert(target.container(), moving, false);
+                if (inserted > 0 && visualTarget == null) {
                     visualTarget = target;
                 }
                 if (moving.isEmpty()) break;
             }
 
-            // Then fill the nearest available storage.
+            // Only after all matching storage is full do we use nearest free storage.
             if (!moving.isEmpty()) {
                 for (Target target : targets) {
-                    if (InventoryTransfer.insert(target.container(), moving, false) > 0 && visualTarget == null) {
+                    if (preferredPositions.contains(target.pos())) continue;
+
+                    int inserted = InventoryTransfer.insert(target.container(), moving, false);
+                    if (inserted > 0 && visualTarget == null) {
                         visualTarget = target;
                     }
                     if (moving.isEmpty()) break;
@@ -65,10 +82,12 @@ public final class DispatchLogic {
         return false;
     }
 
-    private static boolean contains(Container container, ItemStack wanted) {
-        for (int i = 0; i < container.getContainerSize(); i++) {
-            ItemStack stack = container.getItem(i);
-            if (!stack.isEmpty() && ItemStack.isSameItemSameComponents(stack, wanted)) return true;
+    private static boolean containsSameItem(Container container, ItemStack wanted) {
+        for (int slot = 0; slot < container.getContainerSize(); slot++) {
+            ItemStack present = container.getItem(slot);
+            if (!present.isEmpty() && present.is(wanted.getItem())) {
+                return true;
+            }
         }
         return false;
     }

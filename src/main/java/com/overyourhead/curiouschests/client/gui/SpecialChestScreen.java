@@ -1,69 +1,51 @@
 package com.overyourhead.curiouschests.client.gui;
 
-import com.overyourhead.curiouschests.common.chest.ChestKind;
+import com.overyourhead.curiouschests.CuriousChestsMod;
 import com.overyourhead.curiouschests.common.menu.SpecialChestMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.Slot;
 
 /**
- * Vanilla-like placeholder screen. Final art can replace this renderer later
- * without changing menu coordinates or registry IDs.
+ * Every chest has its own editable 256x256 PNG background under:
+ * assets/curiouschests/textures/gui/container/<chest_id>.png
+ *
+ * Slot positions remain menu-driven, while all panel, slot and decorative art
+ * is now read from the texture instead of being painted with Java fill calls.
  */
 public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChestMenu> {
-    private static final int PANEL = 0xFFC6C6C6;
-    private static final int PANEL_DARK = 0xFF555555;
-    private static final int SLOT_BORDER = 0xFF373737;
-    private static final int SLOT_INNER = 0xFF8B8B8B;
-    private final int rows;
+    private final ResourceLocation texture;
 
     public SpecialChestScreen(SpecialChestMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        rows = menu.kind() == ChestKind.INFERNAL ? 5 : (menu.chestSlots() + 8) / 9;
-        imageHeight = menu.kind() == ChestKind.INFERNAL ? 214 : 114 + rows * 18;
+        imageWidth = 176;
+        imageHeight = menu.kind().screenHeight();
         inventoryLabelY = imageHeight - 94;
+        texture = ResourceLocation.fromNamespaceAndPath(
+                CuriousChestsMod.MOD_ID,
+                "textures/gui/container/" + menu.kind().id() + ".png"
+        );
     }
 
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
-        int x = leftPos;
-        int y = topPos;
-
-        graphics.fill(x, y, x + imageWidth, y + imageHeight, PANEL_DARK);
-        graphics.fill(x + 3, y + 3, x + imageWidth - 3, y + imageHeight - 3, PANEL);
-
-        for (Slot slot : menu.slots) {
-            drawSlot(graphics, x + slot.x, y + slot.y);
-        }
-
-        if (menu.kind() == ChestKind.INFERNAL) {
-            graphics.fill(x + 7, y + 41, x + 169, y + 62, 0xFF3A1D18);
-            graphics.fill(x + 10, y + 46, x + 166, y + 58, 0xFFB73514);
-            graphics.fill(x + 14, y + 49, x + 162, y + 55, 0xFFFF8C24);
-            graphics.drawString(
-                    font,
-                    Component.translatable("screen.curiouschests.infernal_inputs"),
-                    x + 8,
-                    y + 7,
-                    0x6B2412,
-                    false
-            );
-            graphics.drawString(
-                    font,
-                    Component.translatable("screen.curiouschests.infernal_outputs"),
-                    x + 8,
-                    y + 61,
-                    0x6B2412,
-                    false
-            );
-        }
+        graphics.blit(
+                texture,
+                leftPos,
+                topPos,
+                0,
+                0,
+                imageWidth,
+                imageHeight
+        );
     }
 
-    private static void drawSlot(GuiGraphics graphics, int x, int y) {
-        graphics.fill(x - 1, y - 1, x + 17, y + 17, SLOT_BORDER);
-        graphics.fill(x, y, x + 16, y + 16, SLOT_INNER);
+    @Override
+    protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
+        graphics.drawString(font, title, titleLabelX, titleLabelY, 0x404040, false);
+        graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0x404040, false);
     }
 
     @Override
