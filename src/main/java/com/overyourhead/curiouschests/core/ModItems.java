@@ -3,6 +3,7 @@ package com.overyourhead.curiouschests.core;
 import com.overyourhead.curiouschests.CuriousChestsMod;
 import com.overyourhead.curiouschests.common.chest.ChestKind;
 import com.overyourhead.curiouschests.common.item.SpecialChestBlockItem;
+import com.overyourhead.curiouschests.common.item.ResonanceCrystalItem;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
@@ -29,6 +30,26 @@ public final class ModItems {
     public static final DeferredItem<SpecialChestBlockItem> COLLECTORS_CHEST_ITEM = ITEMS.registerItem(
             "collectors_chest",
             properties -> new SpecialChestBlockItem(ModBlocks.COLLECTORS_CHEST.get(), ChestKind.COLLECTORS, properties)
+    );
+    public static final DeferredItem<SpecialChestBlockItem> SCULK_SENTINEL_CHEST_ITEM = ITEMS.registerItem(
+            "sculk_sentinel_chest",
+            properties -> new SpecialChestBlockItem(ModBlocks.SCULK_SENTINEL_CHEST.get(), ChestKind.SCULK_SENTINEL, properties)
+    );
+    public static final DeferredItem<SpecialChestBlockItem> RESONANT_CHEST_ITEM = ITEMS.registerItem(
+            "resonant_chest",
+            properties -> new SpecialChestBlockItem(ModBlocks.RESONANT_CHEST.get(), ChestKind.RESONANT, properties)
+    );
+    public static final DeferredItem<SpecialChestBlockItem> ARCHIVISTS_CHEST_ITEM = ITEMS.registerItem(
+            "archivists_chest",
+            properties -> new SpecialChestBlockItem(ModBlocks.ARCHIVISTS_CHEST.get(), ChestKind.ARCHIVIST, properties)
+    );
+    public static final DeferredItem<SpecialChestBlockItem> WITCHS_CHEST_ITEM = ITEMS.registerItem(
+            "witchs_chest",
+            properties -> new SpecialChestBlockItem(ModBlocks.WITCHS_CHEST.get(), ChestKind.WITCH, properties)
+    );
+    public static final DeferredItem<ResonanceCrystalItem> RESONANCE_CRYSTAL = ITEMS.registerItem(
+            "resonance_crystal",
+            ResonanceCrystalItem::new
     );
 
     private ModItems() {}

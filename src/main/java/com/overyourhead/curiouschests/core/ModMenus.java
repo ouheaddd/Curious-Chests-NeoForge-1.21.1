@@ -16,11 +16,22 @@ public final class ModMenus {
     public static final DeferredHolder<MenuType<?>, MenuType<SpecialChestMenu>> ENDER_DISPATCH = register("ender_dispatch", ChestKind.ENDER_DISPATCH);
     public static final DeferredHolder<MenuType<?>, MenuType<SpecialChestMenu>> BUILDERS = register("builders", ChestKind.BUILDERS);
     public static final DeferredHolder<MenuType<?>, MenuType<SpecialChestMenu>> COLLECTORS = register("collectors", ChestKind.COLLECTORS);
+    public static final DeferredHolder<MenuType<?>, MenuType<SpecialChestMenu>> SCULK_SENTINEL = register("sculk_sentinel", ChestKind.SCULK_SENTINEL);
+    public static final DeferredHolder<MenuType<?>, MenuType<SpecialChestMenu>> RESONANT = register("resonant", ChestKind.RESONANT);
+    public static final DeferredHolder<MenuType<?>, MenuType<SpecialChestMenu>> ARCHIVIST = register("archivist", ChestKind.ARCHIVIST);
+    public static final DeferredHolder<MenuType<?>, MenuType<SpecialChestMenu>> WITCH = register("witch", ChestKind.WITCH);
 
     private static DeferredHolder<MenuType<?>, MenuType<SpecialChestMenu>> register(String id, ChestKind kind) {
-        return MENUS.register(id, () -> new MenuType<>((containerId, inv) -> SpecialChestMenu.client(forKindUnsafe(kind), containerId, inv, kind), FeatureFlags.DEFAULT_FLAGS));
+        return MENUS.register(id, () -> new MenuType<>(
+                (containerId, inv) -> SpecialChestMenu.client(forKindUnsafe(kind), containerId, inv, kind),
+                FeatureFlags.DEFAULT_FLAGS
+        ));
     }
-    private static MenuType<SpecialChestMenu> forKindUnsafe(ChestKind kind) { return forKind(kind); }
+
+    private static MenuType<SpecialChestMenu> forKindUnsafe(ChestKind kind) {
+        return forKind(kind);
+    }
+
     public static MenuType<SpecialChestMenu> forKind(ChestKind kind) {
         return switch (kind) {
             case BOTTOMLESS -> BOTTOMLESS.get();
@@ -28,7 +39,12 @@ public final class ModMenus {
             case ENDER_DISPATCH -> ENDER_DISPATCH.get();
             case BUILDERS -> BUILDERS.get();
             case COLLECTORS -> COLLECTORS.get();
+            case SCULK_SENTINEL -> SCULK_SENTINEL.get();
+            case RESONANT -> RESONANT.get();
+            case ARCHIVIST -> ARCHIVIST.get();
+            case WITCH -> WITCH.get();
         };
     }
+
     private ModMenus() {}
 }

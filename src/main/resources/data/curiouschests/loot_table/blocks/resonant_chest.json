@@ -1,0 +1,32 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "curiouschests:resonant_chest",
+          "functions": [
+            {
+              "function": "minecraft:copy_components",
+              "source": "block_entity",
+              "include": [
+                "minecraft:custom_name",
+                "minecraft:container",
+                "curiouschests:resonance_id",
+                "curiouschests:resonance_received_slots"
+              ]
+            }
+          ]
+        }
+      ],
+      "rolls": 1.0
+    }
+  ]
+}

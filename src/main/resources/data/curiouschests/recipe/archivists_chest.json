@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "BBB",
+    "BCB",
+    "BLB"
+  ],
+  "key": {
+    "B": {
+      "item": "minecraft:bookshelf"
+    },
+    "C": {
+      "item": "minecraft:chest"
+    },
+    "L": {
+      "item": "minecraft:lapis_lazuli"
+    }
+  },
+  "result": {
+    "id": "curiouschests:archivists_chest",
+    "count": 1
+  }
+}

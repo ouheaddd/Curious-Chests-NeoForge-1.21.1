@@ -5,6 +5,10 @@
     "curiouschests:infernal_chest",
     "curiouschests:ender_dispatch_chest",
     "curiouschests:builders_chest",
-    "curiouschests:collectors_chest"
+    "curiouschests:collectors_chest",
+    "curiouschests:sculk_sentinel_chest",
+    "curiouschests:resonant_chest",
+    "curiouschests:archivists_chest",
+    "curiouschests:witchs_chest"
   ]
 }

@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "ESE",
+    "SCS",
+    "ESE"
+  ],
+  "key": {
+    "E": {
+      "item": "minecraft:echo_shard"
+    },
+    "S": {
+      "item": "minecraft:sculk"
+    },
+    "C": {
+      "item": "minecraft:chest"
+    }
+  },
+  "result": {
+    "id": "curiouschests:sculk_sentinel_chest",
+    "count": 1
+  }
+}

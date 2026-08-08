@@ -3,10 +3,15 @@ package com.overyourhead.curiouschests.common.block;
 import com.mojang.serialization.MapCodec;
 import com.overyourhead.curiouschests.common.blockentity.SpecialChestBlockEntity;
 import com.overyourhead.curiouschests.common.chest.ChestKind;
+import com.overyourhead.curiouschests.common.logic.SentinelLogic;
+import com.overyourhead.curiouschests.common.sentinel.SentinelIntrusionType;
+import com.overyourhead.curiouschests.core.ModBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -55,7 +60,7 @@ public abstract class AbstractSpecialChestBlock extends BaseEntityBlock {
 
     @Override
     protected RenderShape getRenderShape(BlockState state) {
-        return RenderShape.MODEL;
+        return RenderShape.ENTITYBLOCK_ANIMATED;
     }
 
     @Override
@@ -79,6 +84,21 @@ public abstract class AbstractSpecialChestBlock extends BaseEntityBlock {
         if (!level.isClientSide) {
             BlockEntity blockEntity = level.getBlockEntity(pos);
             if (blockEntity instanceof SpecialChestBlockEntity chest) {
+                if (chest.kind() == ChestKind.SCULK_SENTINEL) {
+                    if (!chest.hasSentinelOwner()) {
+                        chest.claimSentinel(player);
+                    } else if (!chest.canSentinelAccess(player)) {
+                        SentinelLogic.trigger(
+                                (ServerLevel) level,
+                                pos,
+                                chest,
+                                player,
+                                SentinelIntrusionType.OPEN
+                        );
+                        return InteractionResult.CONSUME;
+                    }
+                }
+
                 if (chest.kind() == ChestKind.BOTTOMLESS && !payBottomlessOpeningCost(level, pos, player)) {
                     return InteractionResult.CONSUME;
                 }
@@ -122,6 +142,14 @@ public abstract class AbstractSpecialChestBlock extends BaseEntityBlock {
         super.setPlacedBy(level, pos, state, placer, stack);
         if (level.getBlockEntity(pos) instanceof SpecialChestBlockEntity chest) {
             chest.loadFromPlacedStack(stack);
+            if (!level.isClientSide
+                    && chest.kind() == ChestKind.SCULK_SENTINEL
+                    && placer instanceof Player player) {
+                chest.claimSentinel(player);
+            }
+            if (!level.isClientSide && chest.kind() == ChestKind.RESONANT) {
+                chest.ensureResonanceInitialized();
+            }
         }
     }
 
@@ -131,6 +159,13 @@ public abstract class AbstractSpecialChestBlock extends BaseEntityBlock {
         return new SpecialChestBlockEntity(pos, state);
     }
 
+    @Override
+    protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+        if (level.getBlockEntity(pos) instanceof SpecialChestBlockEntity chest) {
+            chest.recheckOpen();
+        }
+    }
+
     @Nullable
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(
@@ -138,10 +173,16 @@ public abstract class AbstractSpecialChestBlock extends BaseEntityBlock {
             BlockState state,
             BlockEntityType<T> type
     ) {
-        if (level.isClientSide) return null;
+        if (level.isClientSide) {
+            return createTickerHelper(
+                    type,
+                    ModBlockEntities.SPECIAL_CHEST.get(),
+                    SpecialChestBlockEntity::clientTick
+            );
+        }
         return createTickerHelper(
                 type,
-                com.overyourhead.curiouschests.core.ModBlockEntities.SPECIAL_CHEST.get(),
+                ModBlockEntities.SPECIAL_CHEST.get(),
                 SpecialChestBlockEntity::serverTick
         );
     }

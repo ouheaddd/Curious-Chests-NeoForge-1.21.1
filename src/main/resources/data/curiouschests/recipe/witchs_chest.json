@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "GNG",
+    "GCG",
+    "GBG"
+  ],
+  "key": {
+    "G": {
+      "item": "minecraft:glass_bottle"
+    },
+    "N": {
+      "item": "minecraft:nether_wart"
+    },
+    "C": {
+      "item": "minecraft:chest"
+    },
+    "B": {
+      "item": "minecraft:brewing_stand"
+    }
+  },
+  "result": {
+    "id": "curiouschests:witchs_chest",
+    "count": 1
+  }
+}
