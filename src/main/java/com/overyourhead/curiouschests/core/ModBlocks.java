@@ -38,7 +38,7 @@ public final class ModBlocks {
     public static final DeferredBlock<SculkSentinelChestBlock> SCULK_SENTINEL_CHEST = BLOCKS.registerBlock("sculk_sentinel_chest", SculkSentinelChestBlock::new, sentinelProps());
     public static final DeferredBlock<ResonantChestBlock> RESONANT_CHEST = BLOCKS.registerBlock("resonant_chest", ResonantChestBlock::new, props());
     public static final DeferredBlock<ArchivistChestBlock> ARCHIVISTS_CHEST = BLOCKS.registerBlock("archivists_chest", ArchivistChestBlock::new, props());
-    public static final DeferredBlock<WitchChestBlock> WITCHS_CHEST = BLOCKS.registerBlock("witchs_chest", WitchChestBlock::new, props());
+    public static final DeferredBlock<WitchChestBlock> WITCHS_CHEST = BLOCKS.registerBlock("witchs_chest", WitchChestBlock::new, props().lightLevel(state -> 6));
 
     private ModBlocks() {}
 }

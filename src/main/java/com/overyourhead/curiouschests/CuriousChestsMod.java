@@ -8,6 +8,7 @@ import com.overyourhead.curiouschests.core.ModCreativeTabs;
 import com.overyourhead.curiouschests.core.ModDataComponents;
 import com.overyourhead.curiouschests.core.ModItems;
 import com.overyourhead.curiouschests.core.ModMenus;
+import com.overyourhead.curiouschests.core.ModParticles;
 import com.overyourhead.curiouschests.core.ModNetworking;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
@@ -24,6 +25,7 @@ public final class CuriousChestsMod {
         ModCreativeTabs.TABS.register(modBus);
         ModBlockEntities.BLOCK_ENTITIES.register(modBus);
         ModMenus.MENUS.register(modBus);
+        ModParticles.PARTICLES.register(modBus);
 
         modBus.addListener(ModCapabilities::register);
         modBus.addListener(ModNetworking::register);

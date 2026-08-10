@@ -19,6 +19,7 @@ import com.overyourhead.curiouschests.core.ModBlockEntities;
 import com.overyourhead.curiouschests.core.ModDataComponents;
 import com.overyourhead.curiouschests.core.ModItems;
 import com.overyourhead.curiouschests.core.ModMenus;
+import com.overyourhead.curiouschests.core.ModParticles;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -60,6 +61,7 @@ import java.util.UUID;
 
 public final class SpecialChestBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer, LidBlockEntity {
     private static final int EVENT_SET_OPEN_COUNT = 1;
+    private static final int EVENT_WITCH_BREW_BURST = 2;
     private static final String BOTTOMLESS_DEEP_FORMAT_TAG = "BottomlessDeepFormat";
     private static final String SENTINEL_OWNER_TAG = "SentinelOwner";
     private static final String SENTINEL_OWNER_NAME_TAG = "SentinelOwnerName";
@@ -105,6 +107,10 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     private final int[] sidedSlots;
     private int workTicker;
     private int dispatchCooldown = DispatchLogic.TRANSFER_DELAY_TICKS;
+    private boolean witchPotionCountInitialized;
+    private int witchLastPotionCount;
+    private int witchClientBurstTicks;
+    private int witchAmbientSoundCooldown;
     private final InvWrapper fullItemHandler = new InvWrapper(this);
     private final IItemHandler resonanceStorageHandler = new RangedWrapper(
             fullItemHandler,
@@ -172,6 +178,10 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     public boolean triggerEvent(int id, int type) {
         if (id == EVENT_SET_OPEN_COUNT) {
             lidController.shouldBeOpen(type > 0);
+            return true;
+        }
+        if (id == EVENT_WITCH_BREW_BURST) {
+            witchClientBurstTicks = Math.max(witchClientBurstTicks, 24 + type * 6);
             return true;
         }
         return super.triggerEvent(id, type);
@@ -254,6 +264,10 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     @Override
     protected void setItems(NonNullList<ItemStack> items) {
         this.items = items;
+        if (kind() == ChestKind.WITCH) {
+            witchLastPotionCount = countSupportedWitchItems();
+            witchPotionCountInitialized = true;
+        }
     }
 
     @Override
@@ -737,6 +751,260 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         tag.remove(SENTINEL_WARDEN_COOLDOWN_TAG);
     }
 
+    private int countSupportedWitchItems() {
+        int total = 0;
+        for (ItemStack stack : items) {
+            if (WitchLogic.isSupported(stack)) {
+                total += stack.getCount();
+            }
+        }
+        return total;
+    }
+
+    private void serverTickWitch(Level level, BlockPos pos, BlockState state) {
+        int potionCount = countSupportedWitchItems();
+        if (!witchPotionCountInitialized) {
+            witchLastPotionCount = potionCount;
+            witchPotionCountInitialized = true;
+            return;
+        }
+
+        int added = potionCount - witchLastPotionCount;
+        if (added > 0) {
+            level.blockEvent(pos, state.getBlock(), EVENT_WITCH_BREW_BURST, Math.min(8, added));
+        }
+        witchLastPotionCount = potionCount;
+    }
+
+    private void clientTickWitch(Level level, BlockPos pos) {
+        if (witchAmbientSoundCooldown > 0) {
+            witchAmbientSoundCooldown--;
+        } else {
+            float burstFactor = witchClientBurstTicks > 0 ? 0.045F : 0.016F;
+            if (level.random.nextFloat() < burstFactor) {
+                level.playLocalSound(
+                        pos.getX() + 0.5D,
+                        pos.getY() + 0.35D,
+                        pos.getZ() + 0.5D,
+                        SoundEvents.CAMPFIRE_CRACKLE,
+                        SoundSource.BLOCKS,
+                        0.36F,
+                        1.02F + level.random.nextFloat() * 0.12F,
+                        false
+                );
+                witchAmbientSoundCooldown = 65 + level.random.nextInt(55);
+            }
+        }
+
+        if (witchClientBurstTicks > 0) {
+            witchClientBurstTicks--;
+            if (witchClientBurstTicks % 16 == 0) {
+                level.playLocalSound(
+                        pos.getX() + 0.5D,
+                        pos.getY() + 0.8D,
+                        pos.getZ() + 0.5D,
+                        SoundEvents.BREWING_STAND_BREW,
+                        SoundSource.BLOCKS,
+                        0.252F,
+                        1.15F + (level.random.nextFloat() - 0.5F) * 0.10F,
+                        false
+                );
+            }
+        }
+
+        spawnWitchAmbientParticles(level, pos);
+        // A burst is deliberately pulsed instead of emitted every tick. This keeps
+        // the "new potion" reaction readable without turning into a dense fountain.
+        if (witchClientBurstTicks > 0 && witchClientBurstTicks % 3 == 0) {
+            spawnWitchBurstParticles(level, pos);
+        }
+    }
+
+    private void spawnWitchAmbientParticles(Level level, BlockPos pos) {
+        double centerX = pos.getX() + 0.5D;
+        double centerY = pos.getY();
+        double centerZ = pos.getZ() + 0.5D;
+
+        // Low vapor: spawn on a loose ring OUTSIDE the chest body. The previous
+        // center spawn was mostly occluded by the model and made all wisps overlap.
+        if (level.random.nextFloat() < 0.10F) {
+            spawnWitchBaseSteam(level, centerX, centerY, centerZ, false);
+        }
+
+        // Tiny motes above the liquid. Use a wider annulus so they do not stack in
+        // one spot over the middle of the lid.
+        if (level.random.nextFloat() < 0.035F) {
+            double angle = level.random.nextDouble() * Math.PI * 2.0D;
+            double radius = 0.20D + level.random.nextDouble() * 0.19D;
+            double x = centerX + Math.cos(angle) * radius;
+            double z = centerZ + Math.sin(angle) * radius;
+            level.addParticle(
+                    ModParticles.WITCH_SPARK.get(),
+                    x,
+                    centerY + 0.91D + level.random.nextDouble() * 0.035D,
+                    z,
+                    Math.cos(angle) * (0.0010D + level.random.nextDouble() * 0.0015D),
+                    0.0025D + level.random.nextDouble() * 0.0025D,
+                    Math.sin(angle) * (0.0010D + level.random.nextDouble() * 0.0015D)
+            );
+        }
+
+        // Rare liquid-surface wisp: very slow and offset from center.
+        if (level.random.nextFloat() < 0.022F) {
+            double angle = level.random.nextDouble() * Math.PI * 2.0D;
+            double radius = 0.16D + level.random.nextDouble() * 0.23D;
+            double x = centerX + Math.cos(angle) * radius;
+            double z = centerZ + Math.sin(angle) * radius;
+            level.addParticle(
+                    ModParticles.WITCH_STEAM.get(),
+                    x,
+                    centerY + 0.935D,
+                    z,
+                    Math.cos(angle) * 0.0012D,
+                    0.0025D + level.random.nextDouble() * 0.0018D,
+                    Math.sin(angle) * 0.0012D
+            );
+        }
+
+        // Sparse side spark outside the silhouette rather than inside the block.
+        if (level.random.nextFloat() < 0.035F) {
+            int side = level.random.nextInt(4);
+            double tangent = (level.random.nextDouble() - 0.5D) * 0.70D;
+            double distance = 0.58D + level.random.nextDouble() * 0.10D;
+            double ox;
+            double oz;
+            double vx;
+            double vz;
+            switch (side) {
+                case 0 -> { ox = distance; oz = tangent; vx = 0.0025D; vz = tangent * 0.002D; }
+                case 1 -> { ox = -distance; oz = tangent; vx = -0.0025D; vz = tangent * 0.002D; }
+                case 2 -> { ox = tangent; oz = distance; vx = tangent * 0.002D; vz = 0.0025D; }
+                default -> { ox = tangent; oz = -distance; vx = tangent * 0.002D; vz = -0.0025D; }
+            }
+            level.addParticle(
+                    ModParticles.WITCH_SPARK.get(),
+                    centerX + ox,
+                    centerY + 0.18D + level.random.nextDouble() * 0.23D,
+                    centerZ + oz,
+                    vx,
+                    0.0020D + level.random.nextDouble() * 0.0025D,
+                    vz
+            );
+        }
+    }
+
+    private void spawnWitchBaseSteam(
+            Level level,
+            double centerX,
+            double centerY,
+            double centerZ,
+            boolean burst
+    ) {
+        int side = level.random.nextInt(4);
+        double tangent = (level.random.nextDouble() - 0.5D) * (burst ? 0.90D : 0.76D);
+        double distance = (burst ? 0.62D : 0.59D) + level.random.nextDouble() * (burst ? 0.15D : 0.11D);
+        double ox;
+        double oz;
+        double outwardX;
+        double outwardZ;
+        switch (side) {
+            case 0 -> { ox = distance; oz = tangent; outwardX = 1.0D; outwardZ = 0.0D; }
+            case 1 -> { ox = -distance; oz = tangent; outwardX = -1.0D; outwardZ = 0.0D; }
+            case 2 -> { ox = tangent; oz = distance; outwardX = 0.0D; outwardZ = 1.0D; }
+            default -> { ox = tangent; oz = -distance; outwardX = 0.0D; outwardZ = -1.0D; }
+        }
+
+        double speed = burst
+                ? 0.0030D + level.random.nextDouble() * 0.0030D
+                : 0.0012D + level.random.nextDouble() * 0.0018D;
+        double sideDrift = (level.random.nextDouble() - 0.5D) * (burst ? 0.0030D : 0.0014D);
+        double vx = outwardX * speed + (outwardZ == 0.0D ? 0.0D : sideDrift);
+        double vz = outwardZ * speed + (outwardX == 0.0D ? 0.0D : sideDrift);
+
+        level.addParticle(
+                ModParticles.WITCH_STEAM.get(),
+                centerX + ox,
+                centerY + 0.055D + level.random.nextDouble() * 0.075D,
+                centerZ + oz,
+                vx,
+                (burst ? 0.0045D : 0.0025D) + level.random.nextDouble() * 0.0025D,
+                vz
+        );
+    }
+
+    private void spawnWitchBurstParticles(Level level, BlockPos pos) {
+        double centerX = pos.getX() + 0.5D;
+        double centerY = pos.getY();
+        double centerZ = pos.getZ() + 0.5D;
+
+        // Two separated low puffs around the outside of the feet, never from the
+        // solid center of the block.
+        spawnWitchBaseSteam(level, centerX, centerY, centerZ, true);
+        if (level.random.nextFloat() < 0.70F) {
+            spawnWitchBaseSteam(level, centerX, centerY, centerZ, true);
+        }
+
+        // A complete custom reaction cloud. It starts outside the solid body, so the
+        // chest cannot eat half the sprite, and moves only slightly outward/upward.
+        if (level.random.nextFloat() < 0.34F) {
+            double angle = level.random.nextDouble() * Math.PI * 2.0D;
+            double radius = 0.64D + level.random.nextDouble() * 0.14D;
+            level.addParticle(
+                    ModParticles.WITCH_BURST.get(),
+                    centerX + Math.cos(angle) * radius,
+                    centerY + 0.10D + level.random.nextDouble() * 0.08D,
+                    centerZ + Math.sin(angle) * radius,
+                    Math.cos(angle) * (0.0018D + level.random.nextDouble() * 0.0018D),
+                    0.0022D + level.random.nextDouble() * 0.0018D,
+                    Math.sin(angle) * (0.0018D + level.random.nextDouble() * 0.0018D)
+            );
+        }
+
+        // A low "reaction" mote travels away from the block when a potion arrives.
+        if (level.random.nextFloat() < 0.55F) {
+            double angle = level.random.nextDouble() * Math.PI * 2.0D;
+            double radius = 0.60D + level.random.nextDouble() * 0.16D;
+            level.addParticle(
+                    ModParticles.WITCH_SPARK.get(),
+                    centerX + Math.cos(angle) * radius,
+                    centerY + 0.12D + level.random.nextDouble() * 0.10D,
+                    centerZ + Math.sin(angle) * radius,
+                    Math.cos(angle) * (0.0040D + level.random.nextDouble() * 0.0030D),
+                    0.0030D + level.random.nextDouble() * 0.0035D,
+                    Math.sin(angle) * (0.0040D + level.random.nextDouble() * 0.0030D)
+            );
+        }
+
+        // Top reaction is intentionally sparse and spread across the liquid.
+        if (level.random.nextFloat() < 0.55F) {
+            double angle = level.random.nextDouble() * Math.PI * 2.0D;
+            double radius = 0.14D + level.random.nextDouble() * 0.26D;
+            level.addParticle(
+                    ModParticles.WITCH_SPARK.get(),
+                    centerX + Math.cos(angle) * radius,
+                    centerY + 0.94D,
+                    centerZ + Math.sin(angle) * radius,
+                    Math.cos(angle) * (0.0025D + level.random.nextDouble() * 0.0025D),
+                    0.0050D + level.random.nextDouble() * 0.0030D,
+                    Math.sin(angle) * (0.0025D + level.random.nextDouble() * 0.0025D)
+            );
+        }
+
+        if (level.random.nextFloat() < 0.28F) {
+            double angle = level.random.nextDouble() * Math.PI * 2.0D;
+            double radius = 0.18D + level.random.nextDouble() * 0.22D;
+            level.addParticle(
+                    ModParticles.WITCH_STEAM.get(),
+                    centerX + Math.cos(angle) * radius,
+                    centerY + 0.935D,
+                    centerZ + Math.sin(angle) * radius,
+                    Math.cos(angle) * 0.0020D,
+                    0.0040D + level.random.nextDouble() * 0.0025D,
+                    Math.sin(angle) * 0.0020D
+            );
+        }
+    }
+
     @Override
     public void setRemoved() {
         if (kind() == ChestKind.RESONANT) {
@@ -747,6 +1015,9 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
 
     public static void clientTick(Level level, BlockPos pos, BlockState state, SpecialChestBlockEntity chest) {
         chest.lidController.tickLid();
+        if (chest.kind() == ChestKind.WITCH) {
+            chest.clientTickWitch(level, pos);
+        }
     }
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, SpecialChestBlockEntity chest) {
@@ -800,6 +1071,10 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
                     chest.setChanged();
                 }
             }
+        }
+
+        if (chest.kind() == ChestKind.WITCH) {
+            chest.serverTickWitch(level, pos, state);
         }
     }
 }
