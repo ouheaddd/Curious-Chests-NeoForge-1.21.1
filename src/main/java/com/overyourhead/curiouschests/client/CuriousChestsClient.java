@@ -13,14 +13,17 @@ import com.overyourhead.curiouschests.client.particle.WitchBurstParticle;
 import com.overyourhead.curiouschests.client.particle.WitchSparkParticle;
 import com.overyourhead.curiouschests.client.particle.WitchSteamParticle;
 import com.overyourhead.curiouschests.client.render.SpecialChestRenderer;
+import com.overyourhead.curiouschests.client.render.SpecialChestItemExtensions;
 import com.overyourhead.curiouschests.core.ModBlockEntities;
 import com.overyourhead.curiouschests.core.ModMenus;
 import com.overyourhead.curiouschests.core.ModParticles;
+import com.overyourhead.curiouschests.core.ModItems;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
 
 public final class CuriousChestsClient {
@@ -67,6 +70,22 @@ public final class CuriousChestsClient {
             event.registerBlockEntityRenderer(
                     ModBlockEntities.SPECIAL_CHEST.get(),
                     SpecialChestRenderer::new
+            );
+        }
+
+        @SubscribeEvent
+        public static void clientExtensions(RegisterClientExtensionsEvent event) {
+            event.registerItem(
+                    new SpecialChestItemExtensions(),
+                    ModItems.BOTTOMLESS_CHEST_ITEM.get(),
+                    ModItems.INFERNAL_CHEST_ITEM.get(),
+                    ModItems.ENDER_DISPATCH_CHEST_ITEM.get(),
+                    ModItems.BUILDERS_CHEST_ITEM.get(),
+                    ModItems.COLLECTORS_CHEST_ITEM.get(),
+                    ModItems.SCULK_SENTINEL_CHEST_ITEM.get(),
+                    ModItems.RESONANT_CHEST_ITEM.get(),
+                    ModItems.ARCHIVISTS_CHEST_ITEM.get(),
+                    ModItems.WITCHS_CHEST_ITEM.get()
             );
         }
 
