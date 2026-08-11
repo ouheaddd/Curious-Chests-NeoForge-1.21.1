@@ -57,10 +57,13 @@
   "tooltip.curiouschests.archivist.lore_1": "Its shelves remember every spell by name and measure.",
   "tooltip.curiouschests.archivist.lore_2": "No tangled volume remains unsorted for long.",
   "tooltip.curiouschests.archivist.ability": "Stacks identical enchanted books up to 64; the cataloguing slot separates combined books.",
+  "tooltip.curiouschests.archivist.catalog_hint": "Shift + Right Click opens the Archivist's Index of stored enchantments.",
   "gui.curiouschests.archivist.catalog_slot": "Cataloguing slot",
   "block.curiouschests.witchs_chest": "Witch's Chest",
   "container.curiouschests.witch": "Witch's Chest",
   "tooltip.curiouschests.witch.lore_1": "Bottled brews settle quietly beneath its crooked lid.",
   "tooltip.curiouschests.witch.lore_2": "Even the strangest mixtures know their proper shelf.",
-  "tooltip.curiouschests.witch.ability": "Stores drinkable, splash and lingering potions; matching potions stack to 16."
+  "tooltip.curiouschests.witch.ability": "Stores drinkable, splash and lingering potions; matching potions stack to 16.",
+  "gui.curiouschests.archivist.catalog_title": "Archivist's Index",
+  "gui.curiouschests.archivist.catalog_empty": "No enchantments stored."
 }

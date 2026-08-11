@@ -33,6 +33,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.WorldlyContainer;
 import net.minecraft.world.entity.player.Inventory;
@@ -111,6 +112,18 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     private int witchLastPotionCount;
     private int witchClientBurstTicks;
     private int witchAmbientSoundCooldown;
+
+    // Client-only visual state for the vanilla-style floating Archivist book.
+    private int archivistBookTime;
+    private float archivistBookFlip;
+    private float archivistBookOldFlip;
+    private float archivistBookFlipTarget;
+    private float archivistBookFlipVelocity;
+    private float archivistBookOpen;
+    private float archivistBookOldOpen;
+    private float archivistBookRot;
+    private float archivistBookOldRot;
+    private float archivistBookTargetRot;
     private final InvWrapper fullItemHandler = new InvWrapper(this);
     private final IItemHandler resonanceStorageHandler = new RangedWrapper(
             fullItemHandler,
@@ -1005,6 +1018,79 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         }
     }
 
+    public int getArchivistBookTime() {
+        return archivistBookTime;
+    }
+
+    public float getArchivistBookFlip() {
+        return archivistBookFlip;
+    }
+
+    public float getArchivistBookOldFlip() {
+        return archivistBookOldFlip;
+    }
+
+    public float getArchivistBookOpen() {
+        return archivistBookOpen;
+    }
+
+    public float getArchivistBookOldOpen() {
+        return archivistBookOldOpen;
+    }
+
+    public float getArchivistBookRot() {
+        return archivistBookRot;
+    }
+
+    public float getArchivistBookOldRot() {
+        return archivistBookOldRot;
+    }
+
+    private void clientTickArchivist(Level level, BlockPos pos) {
+        archivistBookOldOpen = archivistBookOpen;
+        archivistBookOldRot = archivistBookRot;
+
+        double centerX = pos.getX() + 0.5D;
+        double centerY = pos.getY() + 0.5D;
+        double centerZ = pos.getZ() + 0.5D;
+        Player player = level.getNearestPlayer(centerX, centerY, centerZ, 3.0D, false);
+
+        if (player != null) {
+            double dx = player.getX() - centerX;
+            double dz = player.getZ() - centerZ;
+            archivistBookTargetRot = (float) Mth.atan2(dz, dx);
+            archivistBookOpen += 0.1F;
+
+            if (archivistBookOpen < 0.5F || level.random.nextInt(40) == 0) {
+                float previousTarget = archivistBookFlipTarget;
+                do {
+                    archivistBookFlipTarget += level.random.nextInt(4) - level.random.nextInt(4);
+                } while (previousTarget == archivistBookFlipTarget);
+            }
+        } else {
+            archivistBookTargetRot += 0.02F;
+            archivistBookOpen -= 0.1F;
+        }
+
+        while (archivistBookRot >= Math.PI) archivistBookRot -= (float) (Math.PI * 2.0D);
+        while (archivistBookRot < -Math.PI) archivistBookRot += (float) (Math.PI * 2.0D);
+        while (archivistBookTargetRot >= Math.PI) archivistBookTargetRot -= (float) (Math.PI * 2.0D);
+        while (archivistBookTargetRot < -Math.PI) archivistBookTargetRot += (float) (Math.PI * 2.0D);
+
+        float rotationDelta = archivistBookTargetRot - archivistBookRot;
+        while (rotationDelta >= Math.PI) rotationDelta -= (float) (Math.PI * 2.0D);
+        while (rotationDelta < -Math.PI) rotationDelta += (float) (Math.PI * 2.0D);
+        archivistBookRot += rotationDelta * 0.4F;
+
+        archivistBookOpen = Mth.clamp(archivistBookOpen, 0.0F, 1.0F);
+        archivistBookOldFlip = archivistBookFlip;
+        float flipDelta = (archivistBookFlipTarget - archivistBookFlip) * 0.4F;
+        flipDelta = Mth.clamp(flipDelta, -0.2F, 0.2F);
+        archivistBookFlipVelocity += (flipDelta - archivistBookFlipVelocity) * 0.9F;
+        archivistBookFlip += archivistBookFlipVelocity;
+        archivistBookTime++;
+    }
+
     @Override
     public void setRemoved() {
         if (kind() == ChestKind.RESONANT) {
@@ -1015,6 +1101,9 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
 
     public static void clientTick(Level level, BlockPos pos, BlockState state, SpecialChestBlockEntity chest) {
         chest.lidController.tickLid();
+        if (chest.kind() == ChestKind.ARCHIVIST) {
+            chest.clientTickArchivist(level, pos);
+        }
         if (chest.kind() == ChestKind.WITCH) {
             chest.clientTickWitch(level, pos);
         }

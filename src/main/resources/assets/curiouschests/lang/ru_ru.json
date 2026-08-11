@@ -57,10 +57,13 @@
   "tooltip.curiouschests.archivist.lore_1": "Его полки помнят каждое заклинание по имени и степени.",
   "tooltip.curiouschests.archivist.lore_2": "Ни один спутанный том не остаётся неразобранным надолго.",
   "tooltip.curiouschests.archivist.ability": "Складывает одинаковые зачарованные книги до 64; слот каталогизации разделяет комбинированные книги.",
+  "tooltip.curiouschests.archivist.catalog_hint": "Shift + ПКМ открывает Указатель Архивариуса со списком хранимых чар.",
   "gui.curiouschests.archivist.catalog_slot": "Слот каталогизации",
   "block.curiouschests.witchs_chest": "Сундук ведьмы",
   "container.curiouschests.witch": "Сундук ведьмы",
   "tooltip.curiouschests.witch.lore_1": "Зелья тихо отстаиваются под его кривоватой крышкой.",
   "tooltip.curiouschests.witch.lore_2": "Даже самая странная смесь находит здесь свою полку.",
-  "tooltip.curiouschests.witch.ability": "Хранит обычные, взрывные и оседающие зелья; одинаковые стакаются до 16."
+  "tooltip.curiouschests.witch.ability": "Хранит обычные, взрывные и оседающие зелья; одинаковые стакаются до 16.",
+  "gui.curiouschests.archivist.catalog_title": "Каталог архивариуса",
+  "gui.curiouschests.archivist.catalog_empty": "В архиве пока нет чар."
 }

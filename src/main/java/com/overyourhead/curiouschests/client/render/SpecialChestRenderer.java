@@ -7,6 +7,7 @@ import com.overyourhead.curiouschests.CuriousChestsMod;
 import com.overyourhead.curiouschests.client.model.BuildersChestModel;
 import com.overyourhead.curiouschests.client.model.CollectorsChestModel;
 import com.overyourhead.curiouschests.client.model.EnderDispatchChestModel;
+import com.overyourhead.curiouschests.client.model.ResonantChestModel;
 import com.overyourhead.curiouschests.client.model.SculkSentinelChestModel;
 import com.overyourhead.curiouschests.client.model.WitchLiquidModel;
 import com.overyourhead.curiouschests.client.model.WitchsChestModel;
@@ -14,13 +15,16 @@ import com.overyourhead.curiouschests.common.block.AbstractSpecialChestBlock;
 import com.overyourhead.curiouschests.common.blockentity.SpecialChestBlockEntity;
 import com.overyourhead.curiouschests.common.chest.ChestKind;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.model.BookModel;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
+import net.minecraft.client.renderer.blockentity.EnchantTableRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
@@ -28,6 +32,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.Arrays;
@@ -53,9 +58,11 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
     private final ModelPart bottom;
     private final ModelPart lid;
     private final ModelPart lock;
+    private final BookModel archivistBookModel;
     private final BuildersChestModel buildersModel;
     private final CollectorsChestModel collectorsModel;
     private final EnderDispatchChestModel enderDispatchModel;
+    private final ResonantChestModel resonantModel;
     private final SculkSentinelChestModel sculkSentinelModel;
     private final WitchsChestModel witchModel;
     private final WitchLiquidModel witchLiquidModel;
@@ -66,9 +73,11 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         bottom = root.getChild("bottom");
         lid = root.getChild("lid");
         lock = root.getChild("lock");
+        archivistBookModel = new BookModel(context.bakeLayer(ModelLayers.BOOK));
         buildersModel = new BuildersChestModel(context.bakeLayer(BuildersChestModel.LAYER_LOCATION));
         collectorsModel = new CollectorsChestModel(context.bakeLayer(CollectorsChestModel.LAYER_LOCATION));
         enderDispatchModel = new EnderDispatchChestModel(context.bakeLayer(EnderDispatchChestModel.LAYER_LOCATION));
+        resonantModel = new ResonantChestModel(context.bakeLayer(ResonantChestModel.LAYER_LOCATION));
         sculkSentinelModel = new SculkSentinelChestModel(context.bakeLayer(SculkSentinelChestModel.LAYER_LOCATION));
         witchModel = new WitchsChestModel(context.bakeLayer(WitchsChestModel.LAYER_LOCATION));
         witchLiquidModel = new WitchLiquidModel(context.bakeLayer(WitchLiquidModel.LAYER_LOCATION));
@@ -110,12 +119,69 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
             renderEnderDispatch(poseStack, consumer, openness, packedLight, packedOverlay);
         } else if (chest.kind() == ChestKind.SCULK_SENTINEL) {
             renderSculkSentinel(poseStack, consumer, openness, packedLight, packedOverlay);
+        } else if (chest.kind() == ChestKind.RESONANT) {
+            renderResonant(poseStack, bufferSource, consumer, openness, packedLight, packedOverlay, texture);
         } else if (chest.kind() == ChestKind.WITCH) {
             renderWitch(chest, poseStack, bufferSource, consumer, openness, packedLight, packedOverlay);
         } else {
             renderParts(poseStack, consumer, openness, packedLight, packedOverlay);
         }
         poseStack.popPose();
+
+        if (chest.kind() == ChestKind.ARCHIVIST) {
+            renderArchivistBook(chest, partialTick, poseStack, bufferSource, openness, packedLight);
+        }
+    }
+
+    private void renderArchivistBook(
+            SpecialChestBlockEntity chest,
+            float partialTick,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            float chestOpenness,
+            int packedLight
+    ) {
+        poseStack.pushPose();
+
+        float time = chest.getArchivistBookTime() + partialTick;
+        float hover = 0.10F + Mth.sin(time * 0.1F) * 0.01F;
+        float lidLift = chestOpenness * 0.16F;
+        poseStack.translate(0.5F, 0.91F + hover + lidLift, 0.5F);
+
+        float rotation = lerpRadians(partialTick, chest.getArchivistBookOldRot(), chest.getArchivistBookRot());
+        poseStack.mulPose(Axis.YP.rotationDegrees(-rotation * (180.0F / (float) Math.PI)));
+        poseStack.mulPose(Axis.ZP.rotationDegrees(80.0F));
+
+        float flip = Mth.lerp(partialTick, chest.getArchivistBookOldFlip(), chest.getArchivistBookFlip());
+        float rightFlip = Mth.frac(flip + 0.25F) * 1.6F - 0.3F;
+        float leftFlip = Mth.frac(flip + 0.75F) * 1.6F - 0.3F;
+        float open = Mth.lerp(partialTick, chest.getArchivistBookOldOpen(), chest.getArchivistBookOpen());
+
+        archivistBookModel.setupAnim(
+                time,
+                Mth.clamp(rightFlip, 0.0F, 1.0F),
+                Mth.clamp(leftFlip, 0.0F, 1.0F),
+                open
+        );
+        VertexConsumer bookConsumer = EnchantTableRenderer.BOOK_LOCATION.buffer(
+                bufferSource,
+                RenderType::entitySolid
+        );
+        archivistBookModel.render(
+                poseStack,
+                bookConsumer,
+                packedLight,
+                OverlayTexture.NO_OVERLAY,
+                0xFFFFFFFF
+        );
+        poseStack.popPose();
+    }
+
+    private static float lerpRadians(float partialTick, float from, float to) {
+        float delta = to - from;
+        while (delta >= Math.PI) delta -= (float) (Math.PI * 2.0D);
+        while (delta < -Math.PI) delta += (float) (Math.PI * 2.0D);
+        return from + partialTick * delta;
     }
 
     private void renderBuilders(
@@ -186,6 +252,35 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
         poseStack.scale(-1.0F, -1.0F, 1.0F);
         sculkSentinelModel.render(poseStack, consumer, openness, packedLight, packedOverlay);
+        poseStack.popPose();
+    }
+
+    private void renderResonant(
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            VertexConsumer consumer,
+            float openness,
+            int packedLight,
+            int packedOverlay,
+            ResourceLocation texture
+    ) {
+        poseStack.pushPose();
+        poseStack.translate(0.5F, 1.5F, 0.5F);
+        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
+        poseStack.scale(-1.0F, -1.0F, 1.0F);
+
+        // Keep the working v2 body exactly as-is. The crystal children are hidden only
+        // for this pass so they are not drawn twice.
+        resonantModel.renderMain(poseStack, consumer, openness, packedLight, packedOverlay);
+
+        // Draw the exact same crystal geometry with its parent transforms intact, but
+        // fold all face normals to one neutral upward normal. This removes the harsh
+        // opposite-facing card shading without changing UVs, pivots or positions.
+        VertexConsumer crystalConsumer = new ResonantCrystalVertexConsumer(
+                bufferSource.getBuffer(RenderType.entityCutoutNoCull(texture))
+        );
+        resonantModel.renderCrystals(poseStack, crystalConsumer, openness, packedLight, packedOverlay);
+
         poseStack.popPose();
     }
 
@@ -373,4 +468,54 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         lock.render(poseStack, consumer, packedLight, packedOverlay);
         bottom.render(poseStack, consumer, packedLight, packedOverlay);
     }
+    /**
+     * Delegates every vertex attribute unchanged except the normal. Resonant crystals
+     * are crossed zero-thickness cards, so opposite card normals can receive wildly
+     * different directional shading. A single neutral normal keeps those cards equally
+     * readable while leaving their actual geometry and texture untouched.
+     */
+    private static final class ResonantCrystalVertexConsumer implements VertexConsumer {
+        private final VertexConsumer delegate;
+
+        private ResonantCrystalVertexConsumer(VertexConsumer delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public VertexConsumer addVertex(float x, float y, float z) {
+            delegate.addVertex(x, y, z);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setColor(int red, int green, int blue, int alpha) {
+            delegate.setColor(red, green, blue, alpha);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setUv(float u, float v) {
+            delegate.setUv(u, v);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setUv1(int u, int v) {
+            delegate.setUv1(u, v);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setUv2(int u, int v) {
+            delegate.setUv2(u, v);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setNormal(float x, float y, float z) {
+            delegate.setNormal(0.0F, 1.0F, 0.0F);
+            return this;
+        }
+    }
+
 }

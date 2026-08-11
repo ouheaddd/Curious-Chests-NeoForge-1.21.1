@@ -1,6 +1,7 @@
 package com.overyourhead.curiouschests.common.logic;
 
 import com.overyourhead.curiouschests.common.blockentity.SpecialChestBlockEntity;
+import com.overyourhead.curiouschests.common.network.ArchivistCatalogPayload;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.NonNullList;
@@ -13,9 +14,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class ArchivistLogic {
     public static final int STORAGE_SLOTS = 54;
@@ -24,6 +28,37 @@ public final class ArchivistLogic {
     public static final int PROCESS_INTERVAL_TICKS = 10;
 
     private ArchivistLogic() {}
+
+    public static List<ArchivistCatalogPayload.Entry> collectCatalog(SpecialChestBlockEntity chest) {
+        Map<CatalogKey, Integer> counts = new LinkedHashMap<>();
+
+        for (int slot = 0; slot < STORAGE_SLOTS; slot++) {
+            ItemStack stack = chest.getItem(slot);
+            if (stack.isEmpty() || !stack.is(Items.ENCHANTED_BOOK)) continue;
+
+            ItemEnchantments enchantments = stack.getOrDefault(
+                    DataComponents.STORED_ENCHANTMENTS,
+                    ItemEnchantments.EMPTY
+            );
+            for (var enchantment : enchantments.entrySet()) {
+                var key = enchantment.getKey().unwrapKey().orElse(null);
+                if (key == null) continue;
+
+                CatalogKey catalogKey = new CatalogKey(key.location(), enchantment.getIntValue());
+                counts.merge(catalogKey, stack.getCount(), Integer::sum);
+            }
+        }
+
+        List<ArchivistCatalogPayload.Entry> entries = new ArrayList<>(counts.size());
+        for (var entry : counts.entrySet()) {
+            entries.add(new ArchivistCatalogPayload.Entry(
+                    entry.getKey().enchantmentId(),
+                    entry.getKey().level(),
+                    entry.getValue()
+            ));
+        }
+        return entries;
+    }
 
     public static boolean isProcessableBook(ItemStack stack) {
         if (!stack.is(Items.ENCHANTED_BOOK)) return false;
@@ -110,4 +145,7 @@ public final class ArchivistLogic {
         }
         return false;
     }
+
+
+    private record CatalogKey(ResourceLocation enchantmentId, int level) {}
 }

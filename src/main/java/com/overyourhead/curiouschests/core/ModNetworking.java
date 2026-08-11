@@ -1,9 +1,11 @@
 package com.overyourhead.curiouschests.core;
 
+import com.overyourhead.curiouschests.client.network.ClientArchivistCatalogHandler;
 import com.overyourhead.curiouschests.client.network.ClientSentinelLogHandler;
 import com.overyourhead.curiouschests.common.blockentity.SpecialChestBlockEntity;
 import com.overyourhead.curiouschests.common.chest.ChestKind;
 import com.overyourhead.curiouschests.common.menu.SpecialChestMenu;
+import com.overyourhead.curiouschests.common.network.ArchivistCatalogPayload;
 import com.overyourhead.curiouschests.common.network.RequestSentinelLogPayload;
 import com.overyourhead.curiouschests.common.network.SentinelLogPayload;
 import net.minecraft.server.level.ServerPlayer;
@@ -26,6 +28,11 @@ public final class ModNetworking {
                 SentinelLogPayload.TYPE,
                 SentinelLogPayload.STREAM_CODEC,
                 ClientSentinelLogHandler::handle
+        );
+        registrar.playToClient(
+                ArchivistCatalogPayload.TYPE,
+                ArchivistCatalogPayload.STREAM_CODEC,
+                ClientArchivistCatalogHandler::handle
         );
     }
 

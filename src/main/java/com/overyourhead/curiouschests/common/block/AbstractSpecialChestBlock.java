@@ -3,12 +3,15 @@ package com.overyourhead.curiouschests.common.block;
 import com.mojang.serialization.MapCodec;
 import com.overyourhead.curiouschests.common.blockentity.SpecialChestBlockEntity;
 import com.overyourhead.curiouschests.common.chest.ChestKind;
+import com.overyourhead.curiouschests.common.logic.ArchivistLogic;
 import com.overyourhead.curiouschests.common.logic.SentinelLogic;
+import com.overyourhead.curiouschests.common.network.ArchivistCatalogPayload;
 import com.overyourhead.curiouschests.common.sentinel.SentinelIntrusionType;
 import com.overyourhead.curiouschests.core.ModBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
@@ -32,6 +35,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 public abstract class AbstractSpecialChestBlock extends BaseEntityBlock {
     private static final VoxelShape SHAPE = Block.box(1.0, 0.0, 1.0, 15.0, 14.0, 15.0);
@@ -84,6 +88,16 @@ public abstract class AbstractSpecialChestBlock extends BaseEntityBlock {
         if (!level.isClientSide) {
             BlockEntity blockEntity = level.getBlockEntity(pos);
             if (blockEntity instanceof SpecialChestBlockEntity chest) {
+                if (chest.kind() == ChestKind.ARCHIVIST
+                        && player.isShiftKeyDown()
+                        && player instanceof ServerPlayer serverPlayer) {
+                    PacketDistributor.sendToPlayer(
+                            serverPlayer,
+                            new ArchivistCatalogPayload(ArchivistLogic.collectCatalog(chest))
+                    );
+                    return InteractionResult.CONSUME;
+                }
+
                 if (chest.kind() == ChestKind.SCULK_SENTINEL) {
                     if (!chest.hasSentinelOwner()) {
                         chest.claimSentinel(player);
