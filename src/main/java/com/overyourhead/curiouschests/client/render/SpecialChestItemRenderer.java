@@ -4,9 +4,11 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import com.overyourhead.curiouschests.CuriousChestsMod;
+import com.overyourhead.curiouschests.client.model.BottomlessChestModel;
 import com.overyourhead.curiouschests.client.model.BuildersChestModel;
 import com.overyourhead.curiouschests.client.model.CollectorsChestModel;
 import com.overyourhead.curiouschests.client.model.EnderDispatchChestModel;
+import com.overyourhead.curiouschests.client.model.InfernalChestModel;
 import com.overyourhead.curiouschests.client.model.ResonantChestModel;
 import com.overyourhead.curiouschests.client.model.SculkSentinelChestModel;
 import com.overyourhead.curiouschests.client.model.WitchLiquidModel;
@@ -54,9 +56,11 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
     private ModelPart lid;
     private ModelPart lock;
     private BookModel archivistBookModel;
+    private BottomlessChestModel bottomlessModel;
     private BuildersChestModel buildersModel;
     private CollectorsChestModel collectorsModel;
     private EnderDispatchChestModel enderDispatchModel;
+    private InfernalChestModel infernalModel;
     private ResonantChestModel resonantModel;
     private SculkSentinelChestModel sculkSentinelModel;
     private WitchsChestModel witchModel;
@@ -77,9 +81,11 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
         lid = vanillaChest.getChild("lid");
         lock = vanillaChest.getChild("lock");
         archivistBookModel = new BookModel(models.bakeLayer(ModelLayers.BOOK));
+        bottomlessModel = new BottomlessChestModel(models.bakeLayer(BottomlessChestModel.LAYER_LOCATION));
         buildersModel = new BuildersChestModel(models.bakeLayer(BuildersChestModel.LAYER_LOCATION));
         collectorsModel = new CollectorsChestModel(models.bakeLayer(CollectorsChestModel.LAYER_LOCATION));
         enderDispatchModel = new EnderDispatchChestModel(models.bakeLayer(EnderDispatchChestModel.LAYER_LOCATION));
+        infernalModel = new InfernalChestModel(models.bakeLayer(InfernalChestModel.LAYER_LOCATION));
         resonantModel = new ResonantChestModel(models.bakeLayer(ResonantChestModel.LAYER_LOCATION));
         sculkSentinelModel = new SculkSentinelChestModel(models.bakeLayer(SculkSentinelChestModel.LAYER_LOCATION));
         witchModel = new WitchsChestModel(models.bakeLayer(WitchsChestModel.LAYER_LOCATION));
@@ -117,12 +123,16 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
         VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityCutoutNoCull(texture));
 
         switch (kind) {
+            case BOTTOMLESS -> renderCustomModel(poseStack, () ->
+                    bottomlessModel.render(poseStack, consumer, 0.0F, packedLight, packedOverlay));
             case BUILDERS -> renderCustomModel(poseStack, () ->
                     buildersModel.render(poseStack, consumer, 0.0F, packedLight, packedOverlay));
             case COLLECTORS -> renderCustomModel(poseStack, () ->
                     collectorsModel.render(poseStack, consumer, 0.0F, packedLight, packedOverlay));
             case ENDER_DISPATCH -> renderCustomModel(poseStack, () ->
                     enderDispatchModel.render(poseStack, consumer, 0.0F, packedLight, packedOverlay));
+            case INFERNAL -> renderCustomModel(poseStack, () ->
+                    infernalModel.render(poseStack, consumer, 0.0F, packedLight, packedOverlay));
             case SCULK_SENTINEL -> {
                 ResourceLocation frameTexture = sculkFrame();
                 VertexConsumer sculkConsumer = bufferSource.getBuffer(RenderType.entityCutoutNoCull(frameTexture));

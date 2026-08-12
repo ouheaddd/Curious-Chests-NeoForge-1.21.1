@@ -31,12 +31,12 @@ public final class ModBlocks {
     }
 
     public static final DeferredBlock<BottomlessChestBlock> BOTTOMLESS_CHEST = BLOCKS.registerBlock("bottomless_chest", BottomlessChestBlock::new, props());
-    public static final DeferredBlock<InfernalChestBlock> INFERNAL_CHEST = BLOCKS.registerBlock("infernal_chest", InfernalChestBlock::new, props());
+    public static final DeferredBlock<InfernalChestBlock> INFERNAL_CHEST = BLOCKS.registerBlock("infernal_chest", InfernalChestBlock::new, props().lightLevel(state -> 5));
     public static final DeferredBlock<EnderDispatchChestBlock> ENDER_DISPATCH_CHEST = BLOCKS.registerBlock("ender_dispatch_chest", EnderDispatchChestBlock::new, props());
     public static final DeferredBlock<BuildersChestBlock> BUILDERS_CHEST = BLOCKS.registerBlock("builders_chest", BuildersChestBlock::new, props());
     public static final DeferredBlock<CollectorsChestBlock> COLLECTORS_CHEST = BLOCKS.registerBlock("collectors_chest", CollectorsChestBlock::new, props());
     public static final DeferredBlock<SculkSentinelChestBlock> SCULK_SENTINEL_CHEST = BLOCKS.registerBlock("sculk_sentinel_chest", SculkSentinelChestBlock::new, sentinelProps());
-    public static final DeferredBlock<ResonantChestBlock> RESONANT_CHEST = BLOCKS.registerBlock("resonant_chest", ResonantChestBlock::new, props());
+    public static final DeferredBlock<ResonantChestBlock> RESONANT_CHEST = BLOCKS.registerBlock("resonant_chest", ResonantChestBlock::new, props().lightLevel(state -> 5));
     public static final DeferredBlock<ArchivistChestBlock> ARCHIVISTS_CHEST = BLOCKS.registerBlock("archivists_chest", ArchivistChestBlock::new, props());
     public static final DeferredBlock<WitchChestBlock> WITCHS_CHEST = BLOCKS.registerBlock("witchs_chest", WitchChestBlock::new, props().lightLevel(state -> 6));
 

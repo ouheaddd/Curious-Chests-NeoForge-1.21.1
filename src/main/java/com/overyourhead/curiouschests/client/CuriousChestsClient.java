@@ -2,9 +2,11 @@ package com.overyourhead.curiouschests.client;
 
 import com.overyourhead.curiouschests.CuriousChestsMod;
 import com.overyourhead.curiouschests.client.gui.SpecialChestScreen;
+import com.overyourhead.curiouschests.client.model.BottomlessChestModel;
 import com.overyourhead.curiouschests.client.model.BuildersChestModel;
 import com.overyourhead.curiouschests.client.model.CollectorsChestModel;
 import com.overyourhead.curiouschests.client.model.EnderDispatchChestModel;
+import com.overyourhead.curiouschests.client.model.InfernalChestModel;
 import com.overyourhead.curiouschests.client.model.ResonantChestModel;
 import com.overyourhead.curiouschests.client.model.SculkSentinelChestModel;
 import com.overyourhead.curiouschests.client.model.WitchLiquidModel;
@@ -36,6 +38,10 @@ public final class CuriousChestsClient {
         @SubscribeEvent
         public static void modelLayers(EntityRenderersEvent.RegisterLayerDefinitions event) {
             event.registerLayerDefinition(
+                    BottomlessChestModel.LAYER_LOCATION,
+                    BottomlessChestModel::createBodyLayer
+            );
+            event.registerLayerDefinition(
                     BuildersChestModel.LAYER_LOCATION,
                     BuildersChestModel::createBodyLayer
             );
@@ -46,6 +52,10 @@ public final class CuriousChestsClient {
             event.registerLayerDefinition(
                     EnderDispatchChestModel.LAYER_LOCATION,
                     EnderDispatchChestModel::createBodyLayer
+            );
+            event.registerLayerDefinition(
+                    InfernalChestModel.LAYER_LOCATION,
+                    InfernalChestModel::createBodyLayer
             );
             event.registerLayerDefinition(
                     ResonantChestModel.LAYER_LOCATION,

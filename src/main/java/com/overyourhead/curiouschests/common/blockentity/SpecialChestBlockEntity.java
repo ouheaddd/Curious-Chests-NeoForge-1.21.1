@@ -23,6 +23,7 @@ import com.overyourhead.curiouschests.core.ModParticles;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
@@ -78,12 +79,20 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     private final ContainerOpenersCounter openersCounter = new ContainerOpenersCounter() {
         @Override
         protected void onOpen(Level level, BlockPos pos, BlockState state) {
-            playChestSound(level, pos, SoundEvents.CHEST_OPEN);
+            if (SpecialChestBlockEntity.this.kind() == ChestKind.BOTTOMLESS) {
+                playCompressionPistonSound(level, pos, true);
+            } else {
+                playChestSound(level, pos, SoundEvents.CHEST_OPEN);
+            }
         }
 
         @Override
         protected void onClose(Level level, BlockPos pos, BlockState state) {
-            playChestSound(level, pos, SoundEvents.CHEST_CLOSE);
+            if (SpecialChestBlockEntity.this.kind() == ChestKind.BOTTOMLESS) {
+                playCompressionPistonSound(level, pos, false);
+            } else {
+                playChestSound(level, pos, SoundEvents.CHEST_CLOSE);
+            }
         }
 
         @Override
@@ -218,6 +227,14 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
                 0.5F,
                 level.random.nextFloat() * 0.1F + 0.9F
         );
+    }
+
+    private static void playCompressionPistonSound(Level level, BlockPos pos, boolean extending) {
+        SoundEvent sound = extending ? SoundEvents.PISTON_EXTEND : SoundEvents.PISTON_CONTRACT;
+        float pitch = extending
+                ? level.random.nextFloat() * 0.25F + 0.60F
+                : level.random.nextFloat() * 0.15F + 0.60F;
+        level.playSound(null, pos, sound, SoundSource.BLOCKS, 0.5F, pitch);
     }
 
     public IItemHandler getItemHandler() {
@@ -1091,6 +1108,66 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         archivistBookTime++;
     }
 
+    private void clientTickInfernal(Level level, BlockPos pos) {
+        if (level.random.nextDouble() < 0.10D) {
+            level.playLocalSound(
+                    pos.getX() + 0.5D,
+                    pos.getY() + 0.5D,
+                    pos.getZ() + 0.5D,
+                    SoundEvents.BLASTFURNACE_FIRE_CRACKLE,
+                    SoundSource.BLOCKS,
+                    0.62F,
+                    1.0F,
+                    false
+            );
+        }
+
+        if (level.random.nextFloat() < 0.12F) {
+            spawnInfernalVanillaParticles(level, pos);
+        }
+    }
+
+    private void spawnInfernalVanillaParticles(Level level, BlockPos pos) {
+        BlockState state = getBlockState();
+        Direction facing = state.hasProperty(AbstractSpecialChestBlock.FACING)
+                ? state.getValue(AbstractSpecialChestBlock.FACING)
+                : Direction.NORTH;
+
+        double x = pos.getX() + 0.5D;
+        double y = pos.getY() + 2.0D / 16.0D + level.random.nextDouble() * 6.0D / 16.0D;
+        double z = pos.getZ() + 0.5D;
+        double tangent = level.random.nextDouble() * 0.6D - 0.3D;
+        double forward = 0.52D;
+
+        switch (facing) {
+            case WEST -> {
+                x -= forward;
+                z += tangent;
+            }
+            case EAST -> {
+                x += forward;
+                z += tangent;
+            }
+            case NORTH -> {
+                x += tangent;
+                z -= forward;
+            }
+            case SOUTH -> {
+                x += tangent;
+                z += forward;
+            }
+            default -> {
+                x += tangent;
+                z -= forward;
+            }
+        }
+
+        level.addParticle(ParticleTypes.SMOKE, x, y, z, 0.0D, 0.0D, 0.0D);
+        if (level.random.nextFloat() < 0.65F) {
+            level.addParticle(ParticleTypes.FLAME, x, y, z, 0.0D, 0.0D, 0.0D);
+        }
+    }
+
     @Override
     public void setRemoved() {
         if (kind() == ChestKind.RESONANT) {
@@ -1106,6 +1183,9 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         }
         if (chest.kind() == ChestKind.WITCH) {
             chest.clientTickWitch(level, pos);
+        }
+        if (chest.kind() == ChestKind.INFERNAL) {
+            chest.clientTickInfernal(level, pos);
         }
     }
 

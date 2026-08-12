@@ -9,11 +9,8 @@ import com.overyourhead.curiouschests.common.network.ArchivistCatalogPayload;
 import com.overyourhead.curiouschests.common.sentinel.SentinelIntrusionType;
 import com.overyourhead.curiouschests.core.ModBlockEntities;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
@@ -39,7 +36,6 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 public abstract class AbstractSpecialChestBlock extends BaseEntityBlock {
     private static final VoxelShape SHAPE = Block.box(1.0, 0.0, 1.0, 15.0, 14.0, 15.0);
-    private static final int BOTTOMLESS_OPEN_XP_COST = 7;
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
 
     protected AbstractSpecialChestBlock(Properties properties) {
@@ -113,36 +109,10 @@ public abstract class AbstractSpecialChestBlock extends BaseEntityBlock {
                     }
                 }
 
-                if (chest.kind() == ChestKind.BOTTOMLESS && !payBottomlessOpeningCost(level, pos, player)) {
-                    return InteractionResult.CONSUME;
-                }
                 player.openMenu(chest);
             }
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
-    }
-
-    private static boolean payBottomlessOpeningCost(Level level, BlockPos pos, Player player) {
-        if (player.getAbilities().instabuild) return true;
-
-        if (player.totalExperience < BOTTOMLESS_OPEN_XP_COST) {
-            player.displayClientMessage(
-                    Component.translatable("message.curiouschests.bottomless_not_enough_xp", BOTTOMLESS_OPEN_XP_COST),
-                    true
-            );
-            return false;
-        }
-
-        player.giveExperiencePoints(-BOTTOMLESS_OPEN_XP_COST);
-        level.playSound(
-                null,
-                pos,
-                SoundEvents.EXPERIENCE_ORB_PICKUP,
-                SoundSource.BLOCKS,
-                0.35F,
-                0.65F
-        );
-        return true;
     }
 
     @Override

@@ -4,9 +4,11 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import com.overyourhead.curiouschests.CuriousChestsMod;
+import com.overyourhead.curiouschests.client.model.BottomlessChestModel;
 import com.overyourhead.curiouschests.client.model.BuildersChestModel;
 import com.overyourhead.curiouschests.client.model.CollectorsChestModel;
 import com.overyourhead.curiouschests.client.model.EnderDispatchChestModel;
+import com.overyourhead.curiouschests.client.model.InfernalChestModel;
 import com.overyourhead.curiouschests.client.model.ResonantChestModel;
 import com.overyourhead.curiouschests.client.model.SculkSentinelChestModel;
 import com.overyourhead.curiouschests.client.model.WitchLiquidModel;
@@ -55,13 +57,19 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
     private static final int WITCH_LIQUID_TICKS_PER_FRAME = 4;
     private static final ResourceLocation[] WITCH_LIQUID_FRAMES = createWitchLiquidFrames();
 
+    private static final int INFERNAL_FRAME_COUNT = 3;
+    private static final int INFERNAL_TICKS_PER_FRAME = 8;
+    private static final ResourceLocation[] INFERNAL_FRAMES = createInfernalFrames();
+
     private final ModelPart bottom;
     private final ModelPart lid;
     private final ModelPart lock;
     private final BookModel archivistBookModel;
+    private final BottomlessChestModel bottomlessModel;
     private final BuildersChestModel buildersModel;
     private final CollectorsChestModel collectorsModel;
     private final EnderDispatchChestModel enderDispatchModel;
+    private final InfernalChestModel infernalModel;
     private final ResonantChestModel resonantModel;
     private final SculkSentinelChestModel sculkSentinelModel;
     private final WitchsChestModel witchModel;
@@ -74,9 +82,11 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         lid = root.getChild("lid");
         lock = root.getChild("lock");
         archivistBookModel = new BookModel(context.bakeLayer(ModelLayers.BOOK));
+        bottomlessModel = new BottomlessChestModel(context.bakeLayer(BottomlessChestModel.LAYER_LOCATION));
         buildersModel = new BuildersChestModel(context.bakeLayer(BuildersChestModel.LAYER_LOCATION));
         collectorsModel = new CollectorsChestModel(context.bakeLayer(CollectorsChestModel.LAYER_LOCATION));
         enderDispatchModel = new EnderDispatchChestModel(context.bakeLayer(EnderDispatchChestModel.LAYER_LOCATION));
+        infernalModel = new InfernalChestModel(context.bakeLayer(InfernalChestModel.LAYER_LOCATION));
         resonantModel = new ResonantChestModel(context.bakeLayer(ResonantChestModel.LAYER_LOCATION));
         sculkSentinelModel = new SculkSentinelChestModel(context.bakeLayer(SculkSentinelChestModel.LAYER_LOCATION));
         witchModel = new WitchsChestModel(context.bakeLayer(WitchsChestModel.LAYER_LOCATION));
@@ -107,16 +117,22 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         openness = 1.0F - openness;
         openness = 1.0F - openness * openness * openness;
 
-        ResourceLocation texture = chest.kind() == ChestKind.SCULK_SENTINEL
-                ? sculkSentinelFrame(chest)
-                : TEXTURES[chest.kind().ordinal()];
+        ResourceLocation texture = switch (chest.kind()) {
+            case SCULK_SENTINEL -> sculkSentinelFrame(chest);
+            case INFERNAL -> infernalFrame(chest);
+            default -> TEXTURES[chest.kind().ordinal()];
+        };
         VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityCutoutNoCull(texture));
-        if (chest.kind() == ChestKind.BUILDERS) {
+        if (chest.kind() == ChestKind.BOTTOMLESS) {
+            renderBottomless(poseStack, consumer, openness, packedLight, packedOverlay);
+        } else if (chest.kind() == ChestKind.BUILDERS) {
             renderBuilders(poseStack, consumer, openness, packedLight, packedOverlay);
         } else if (chest.kind() == ChestKind.COLLECTORS) {
             renderCollectors(poseStack, consumer, openness, packedLight, packedOverlay);
         } else if (chest.kind() == ChestKind.ENDER_DISPATCH) {
             renderEnderDispatch(poseStack, consumer, openness, packedLight, packedOverlay);
+        } else if (chest.kind() == ChestKind.INFERNAL) {
+            renderInfernal(poseStack, consumer, openness, packedLight, packedOverlay);
         } else if (chest.kind() == ChestKind.SCULK_SENTINEL) {
             renderSculkSentinel(poseStack, consumer, openness, packedLight, packedOverlay);
         } else if (chest.kind() == ChestKind.RESONANT) {
@@ -184,6 +200,21 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         return from + partialTick * delta;
     }
 
+    private void renderBottomless(
+            PoseStack poseStack,
+            VertexConsumer consumer,
+            float openness,
+            int packedLight,
+            int packedOverlay
+    ) {
+        poseStack.pushPose();
+        poseStack.translate(0.5F, 1.5F, 0.5F);
+        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
+        poseStack.scale(-1.0F, -1.0F, 1.0F);
+        bottomlessModel.render(poseStack, consumer, openness, packedLight, packedOverlay);
+        poseStack.popPose();
+    }
+
     private void renderBuilders(
             PoseStack poseStack,
             VertexConsumer consumer,
@@ -236,6 +267,21 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
         poseStack.scale(-1.0F, -1.0F, 1.0F);
         enderDispatchModel.render(poseStack, consumer, openness, packedLight, packedOverlay);
+        poseStack.popPose();
+    }
+
+    private void renderInfernal(
+            PoseStack poseStack,
+            VertexConsumer consumer,
+            float openness,
+            int packedLight,
+            int packedOverlay
+    ) {
+        poseStack.pushPose();
+        poseStack.translate(0.5F, 1.5F, 0.5F);
+        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
+        poseStack.scale(-1.0F, -1.0F, 1.0F);
+        infernalModel.render(poseStack, consumer, openness, packedLight, packedOverlay);
         poseStack.popPose();
     }
 
@@ -376,6 +422,20 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
             );
         }
         return frames;
+    }
+
+    private static ResourceLocation infernalFrame(SpecialChestBlockEntity chest) {
+        long gameTime = chest.getLevel() == null ? 0L : chest.getLevel().getGameTime();
+        int frame = (int) ((gameTime / INFERNAL_TICKS_PER_FRAME) % INFERNAL_FRAME_COUNT);
+        return INFERNAL_FRAMES[frame];
+    }
+
+    private static ResourceLocation[] createInfernalFrames() {
+        return new ResourceLocation[]{
+                ResourceLocation.fromNamespaceAndPath(CuriousChestsMod.MOD_ID, "textures/entity/chest/infernal.png"),
+                ResourceLocation.fromNamespaceAndPath(CuriousChestsMod.MOD_ID, "textures/entity/chest/infernal2.png"),
+                ResourceLocation.fromNamespaceAndPath(CuriousChestsMod.MOD_ID, "textures/entity/chest/infernal3.png")
+        };
     }
 
     private static ItemStack createWitchDisplayPotion(SpecialChestBlockEntity chest, int slotIndex) {
