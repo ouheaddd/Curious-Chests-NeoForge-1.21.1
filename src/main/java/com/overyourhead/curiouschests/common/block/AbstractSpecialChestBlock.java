@@ -4,6 +4,7 @@ import com.mojang.serialization.MapCodec;
 import com.overyourhead.curiouschests.common.blockentity.SpecialChestBlockEntity;
 import com.overyourhead.curiouschests.common.chest.ChestKind;
 import com.overyourhead.curiouschests.common.logic.ArchivistLogic;
+import com.overyourhead.curiouschests.common.logic.ResonanceLogic;
 import com.overyourhead.curiouschests.common.logic.SentinelLogic;
 import com.overyourhead.curiouschests.common.network.ArchivistCatalogPayload;
 import com.overyourhead.curiouschests.common.sentinel.SentinelIntrusionType;
@@ -131,10 +132,29 @@ public abstract class AbstractSpecialChestBlock extends BaseEntityBlock {
                     && placer instanceof Player player) {
                 chest.claimSentinel(player);
             }
-            if (!level.isClientSide && chest.kind() == ChestKind.RESONANT) {
+            if (!level.isClientSide && chest.kind() == ChestKind.RESONANT && level instanceof ServerLevel serverLevel) {
                 chest.ensureResonanceInitialized();
+                ResonanceLogic.registerPlaced(serverLevel, chest);
             }
         }
+    }
+
+    @Override
+    protected void onRemove(
+            BlockState state,
+            Level level,
+            BlockPos pos,
+            BlockState newState,
+            boolean movedByPiston
+    ) {
+        if (!level.isClientSide
+                && state.getBlock() != newState.getBlock()
+                && kind() == ChestKind.RESONANT
+                && level instanceof ServerLevel serverLevel
+                && level.getBlockEntity(pos) instanceof SpecialChestBlockEntity chest) {
+            ResonanceLogic.unregisterPlaced(serverLevel, chest);
+        }
+        super.onRemove(state, level, pos, newState, movedByPiston);
     }
 
     @Nullable

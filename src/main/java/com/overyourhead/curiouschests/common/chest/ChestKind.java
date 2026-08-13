@@ -6,7 +6,7 @@ public enum ChestKind {
     BOTTOMLESS("bottomless", 63, 176, 240),
     INFERNAL("infernal", 27, 176, 214),
     ENDER_DISPATCH("ender_dispatch", 36, 176, 186),
-    BUILDERS("builders", 45, 176, 204),
+    BUILDERS("builders", 45, 260, 204),
     COLLECTORS("collectors", 36, 176, 186),
     SCULK_SENTINEL("sculk_sentinel", 36, 176, 186),
     RESONANT("resonant", 28, 176, 168),

@@ -14,10 +14,17 @@ import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.inventory.ResultContainer;
+import net.minecraft.world.inventory.ResultSlot;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.TransientCraftingContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.CraftingInput;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.server.level.ServerLevel;
 
 import java.util.function.Predicate;
 
@@ -26,6 +33,18 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
     private final ChestKind kind;
     private final Predicate<Player> validity;
     private final int chestSlots;
+    private final Player menuPlayer;
+    private final CraftingContainer buildersCraftSlots;
+    private final ResultContainer buildersResultSlots;
+    private int buildersCraftStart = -1;
+    private int buildersCraftEnd = -1;
+    private int buildersResultSlot = -1;
+    private int playerSlotsStart = -1;
+
+    private static final int BUILDERS_CRAFT_X = 193;
+    private static final int BUILDERS_CRAFT_Y = 18;
+    private static final int BUILDERS_RESULT_X = 212;
+    private static final int BUILDERS_RESULT_Y = 99;
 
     public static SpecialChestMenu client(MenuType<SpecialChestMenu> type, int id, Inventory inventory, ChestKind kind) {
         return new SpecialChestMenu(
@@ -107,10 +126,46 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
         this.kind = kind;
         this.validity = validity;
         this.chestSlots = kind.slots();
+        this.menuPlayer = playerInventory.player;
+        this.buildersCraftSlots = kind == ChestKind.BUILDERS
+                ? new TransientCraftingContainer(this, 3, 3)
+                : null;
+        this.buildersResultSlots = kind == ChestKind.BUILDERS
+                ? new ResultContainer()
+                : null;
 
         container.startOpen(playerInventory.player);
         addChestSlots();
+        if (kind == ChestKind.BUILDERS) {
+            addBuildersCraftingSlots();
+        }
+        playerSlotsStart = slots.size();
         addPlayerSlots(playerInventory);
+    }
+
+    private void addBuildersCraftingSlots() {
+        buildersCraftStart = slots.size();
+        for (int row = 0; row < 3; row++) {
+            for (int column = 0; column < 3; column++) {
+                int craftingIndex = column + row * 3;
+                addSlot(new Slot(
+                        buildersCraftSlots,
+                        craftingIndex,
+                        BUILDERS_CRAFT_X + column * 18,
+                        BUILDERS_CRAFT_Y + row * 18
+                ));
+            }
+        }
+        buildersCraftEnd = slots.size();
+        buildersResultSlot = slots.size();
+        addSlot(new ResultSlot(
+                menuPlayer,
+                buildersCraftSlots,
+                buildersResultSlots,
+                0,
+                BUILDERS_RESULT_X,
+                BUILDERS_RESULT_Y
+        ));
     }
 
     private void addChestSlots() {
@@ -301,6 +356,26 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
         }
     }
 
+    @Override
+    public void slotsChanged(Container changedContainer) {
+        super.slotsChanged(changedContainer);
+        if (kind != ChestKind.BUILDERS
+                || changedContainer != buildersCraftSlots
+                || buildersResultSlots == null
+                || !(menuPlayer.level() instanceof ServerLevel serverLevel)) {
+            return;
+        }
+
+        CraftingInput input = buildersCraftSlots.asCraftInput();
+        ItemStack result = serverLevel.getRecipeManager()
+                .getRecipeFor(RecipeType.CRAFTING, input, serverLevel)
+                .map(holder -> holder.value().assemble(input, serverLevel.registryAccess()))
+                .orElse(ItemStack.EMPTY);
+
+        buildersResultSlots.setItem(0, result);
+        broadcastChanges();
+    }
+
     public ChestKind kind() {
         return kind;
     }
@@ -326,6 +401,10 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
 
         ItemStack source = slot.getItem();
         result = source.copy();
+
+        if (kind == ChestKind.BUILDERS) {
+            return quickMoveBuilders(player, index, slot, source, result);
+        }
 
         if (index < chestSlots) {
             boolean moved = kind == ChestKind.WITCH
@@ -369,6 +448,49 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
         return result;
     }
 
+
+    private ItemStack quickMoveBuilders(
+            Player player,
+            int index,
+            Slot slot,
+            ItemStack source,
+            ItemStack original
+    ) {
+        if (index == buildersResultSlot) {
+            if (!moveItemStackTo(source, playerSlotsStart, slots.size(), true)) {
+                return ItemStack.EMPTY;
+            }
+            slot.onQuickCraft(source, original);
+        } else if (index < chestSlots
+                || (index >= buildersCraftStart && index < buildersCraftEnd)) {
+            if (!moveItemStackTo(source, playerSlotsStart, slots.size(), true)) {
+                return ItemStack.EMPTY;
+            }
+        } else if (index >= playerSlotsStart) {
+            if (!ChestRules.canStore(source)
+                    || !moveItemStackTo(source, 0, chestSlots, false)) {
+                return ItemStack.EMPTY;
+            }
+        } else {
+            return ItemStack.EMPTY;
+        }
+
+        if (source.isEmpty()) {
+            slot.setByPlayer(ItemStack.EMPTY);
+        } else {
+            slot.setChanged();
+        }
+
+        if (source.getCount() == original.getCount()) {
+            return ItemStack.EMPTY;
+        }
+
+        slot.onTake(player, source);
+        if (index == buildersResultSlot && !source.isEmpty()) {
+            player.drop(source, false);
+        }
+        return original;
+    }
 
     private boolean moveWitchItemsToStorage(ItemStack source) {
         if (!WitchLogic.isSupported(source)) return false;
@@ -484,6 +606,11 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
     @Override
     public void removed(Player player) {
         super.removed(player);
+        if (kind == ChestKind.BUILDERS
+                && buildersCraftSlots != null
+                && !player.level().isClientSide) {
+            clearContainer(player, buildersCraftSlots);
+        }
         container.stopOpen(player);
         container.setChanged();
     }

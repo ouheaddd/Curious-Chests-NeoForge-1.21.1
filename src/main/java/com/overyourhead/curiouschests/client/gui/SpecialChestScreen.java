@@ -41,6 +41,12 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
     private static final int ARCHIVIST_SLOT_PANEL_Y = 15;
     private static final int ARCHIVIST_SLOT_PANEL_SIZE = 22;
 
+    private static final int BUILDERS_BASE_WIDTH = 176;
+    private static final int BUILDERS_CRAFT_PANEL_X = 180;
+    private static final int BUILDERS_CRAFT_PANEL_Y = 8;
+    private static final int BUILDERS_CRAFT_PANEL_WIDTH = 80;
+    private static final int BUILDERS_CRAFT_PANEL_HEIGHT = 116;
+
     private static final int LOG_ROWS_VISIBLE = 5;
     private static final int LOG_FIRST_ROW_Y = 34;
     private static final int LOG_ROW_HEIGHT = 27;
@@ -68,6 +74,10 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
             CuriousChestsMod.MOD_ID,
             "textures/gui/widget/archivist_catalog_slot.png"
     );
+    private static final ResourceLocation BUILDERS_CRAFT_PANEL_TEXTURE = ResourceLocation.fromNamespaceAndPath(
+            CuriousChestsMod.MOD_ID,
+            "textures/gui/widget/builders_crafting.png"
+    );
 
     private final ResourceLocation texture;
 
@@ -88,8 +98,47 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
     }
 
     @Override
+    protected void init() {
+        super.init();
+
+        // Builder's crafting panel is an attached side module, not part of the
+        // visual center of the chest GUI. Keep the 176px chest body centered
+        // exactly like a normal container and let the crafting panel extend to
+        // the right from that anchor. imageWidth intentionally stays 260 so the
+        // attached panel and its slots remain inside the screen's interaction area.
+        if (menu.kind() == ChestKind.BUILDERS) {
+            leftPos = (width - BUILDERS_BASE_WIDTH) / 2;
+        }
+    }
+
+    @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
-        graphics.blit(texture, leftPos, topPos, 0, 0, imageWidth, imageHeight);
+        if (menu.kind() == ChestKind.BUILDERS) {
+            graphics.blit(
+                    texture,
+                    leftPos,
+                    topPos,
+                    0,
+                    0,
+                    BUILDERS_BASE_WIDTH,
+                    imageHeight,
+                    256,
+                    256
+            );
+            graphics.blit(
+                    BUILDERS_CRAFT_PANEL_TEXTURE,
+                    leftPos + BUILDERS_CRAFT_PANEL_X,
+                    topPos + BUILDERS_CRAFT_PANEL_Y,
+                    0,
+                    0,
+                    BUILDERS_CRAFT_PANEL_WIDTH,
+                    BUILDERS_CRAFT_PANEL_HEIGHT,
+                    BUILDERS_CRAFT_PANEL_WIDTH,
+                    BUILDERS_CRAFT_PANEL_HEIGHT
+            );
+        } else {
+            graphics.blit(texture, leftPos, topPos, 0, 0, imageWidth, imageHeight);
+        }
         if (menu.kind() == ChestKind.RESONANT) {
             graphics.blit(
                     RESONANCE_SLOT_PANEL_TEXTURE,

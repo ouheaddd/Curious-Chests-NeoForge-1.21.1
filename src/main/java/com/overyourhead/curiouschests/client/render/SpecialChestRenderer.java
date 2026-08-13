@@ -144,9 +144,66 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         }
         poseStack.popPose();
 
+        if (chest.kind() == ChestKind.ENDER_DISPATCH) {
+            renderEnderDispatchPreview(chest, partialTick, poseStack, bufferSource, packedLight, packedOverlay);
+        }
         if (chest.kind() == ChestKind.ARCHIVIST) {
             renderArchivistBook(chest, partialTick, poseStack, bufferSource, openness, packedLight);
         }
+    }
+
+    private void renderEnderDispatchPreview(
+            SpecialChestBlockEntity chest,
+            float partialTick,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            int packedLight,
+            int packedOverlay
+    ) {
+        ItemStack preview = chest.getDispatchPreviewStack();
+        if (preview.isEmpty()) return;
+
+        poseStack.pushPose();
+
+        long gameTime = chest.getLevel() == null ? 0L : chest.getLevel().getGameTime();
+        float time = gameTime + partialTick;
+        float hover = Mth.sin(time * 0.18F) * 0.025F;
+        poseStack.translate(0.5F, 1.24F + hover, 0.5F);
+
+        // Keep flat 2D items camera-facing so they remain readable.
+        // 3D items instead use a fixed chest-relative display so they feel
+        // like a levitating pedestal preview rather than flipping when viewed
+        // from above or odd angles.
+        var model = itemRenderer.getModel(
+                preview,
+                chest.getLevel(),
+                null,
+                (int) chest.getBlockPos().asLong()
+        );
+
+        if (model.isGui3d()) {
+            Direction facing = chest.getBlockState().hasProperty(AbstractSpecialChestBlock.FACING)
+                    ? chest.getBlockState().getValue(AbstractSpecialChestBlock.FACING)
+                    : Direction.SOUTH;
+            poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - facing.toYRot()));
+            poseStack.translate(0.0F, -0.03F, 0.0F);
+            poseStack.scale(0.70F, 0.70F, 0.70F);
+        } else {
+            poseStack.mulPose(Minecraft.getInstance().getEntityRenderDispatcher().cameraOrientation());
+            poseStack.scale(0.525F, 0.525F, 0.525F);
+        }
+
+        itemRenderer.renderStatic(
+                preview,
+                ItemDisplayContext.FIXED,
+                packedLight,
+                packedOverlay,
+                poseStack,
+                bufferSource,
+                chest.getLevel(),
+                (int) chest.getBlockPos().asLong()
+        );
+        poseStack.popPose();
     }
 
     private void renderArchivistBook(

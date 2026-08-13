@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.UUID;
 
 public final class BuilderSupplyLogic {
-    public static final int RADIUS = 16;
+    public static final int RADIUS = 24;
     public static final int TICK_INTERVAL = 2;
 
     private BuilderSupplyLogic() {}
@@ -42,8 +42,18 @@ public final class BuilderSupplyLogic {
             ItemStack current = player.getInventory().getItem(selectedSlot);
             HeldSnapshot previous = snapshots.get(playerId);
 
+            // While this exact Builder's Chest menu is open, the player may be
+            // intentionally moving the selected hotbar stack into the chest or
+            // crafting grid. Do not treat that empty slot as "blocks were used up".
+            // We still write the fresh snapshot below, so closing the menu cannot
+            // resurrect the stack via the auto-restock logic on the next tick.
+            boolean viewingThisBuilder = player.containerMenu
+                    instanceof com.overyourhead.curiouschests.common.menu.SpecialChestMenu menu
+                    && menu.blockEntity() == source;
+
             boolean keepPreviousPrototype = false;
-            if (previous != null
+            if (!viewingThisBuilder
+                    && previous != null
                     && previous.slot() == selectedSlot
                     && current.isEmpty()
                     && !previous.prototype().isEmpty()) {

@@ -29,7 +29,11 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
@@ -44,6 +48,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.entity.ChestLidController;
 import net.minecraft.world.level.block.entity.ContainerOpenersCounter;
@@ -74,6 +79,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     private static final String RESONANCE_ATTUNEMENT_TAG = "ResonanceAttunement";
     private static final String RESONANCE_TRANSFER_COOLDOWN_TAG = "ResonanceTransferCooldown";
     private static final String RESONANCE_RECEIVED_TAG = "ResonanceReceivedSlots";
+    private static final String DISPATCH_PREVIEW_TAG = "DispatchPreview";
 
     private final ChestLidController lidController = new ChestLidController();
     private final ContainerOpenersCounter openersCounter = new ContainerOpenersCounter() {
@@ -117,6 +123,10 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     private final int[] sidedSlots;
     private int workTicker;
     private int dispatchCooldown = DispatchLogic.TRANSFER_DELAY_TICKS;
+    private int dispatchPreviewTicks;
+    private int dispatchPreviewSlot = -1;
+    private ItemStack dispatchPreviewStack = ItemStack.EMPTY;
+    private boolean dispatchInternalMutation;
     private boolean witchPotionCountInitialized;
     private int witchLastPotionCount;
     private int witchClientBurstTicks;
@@ -134,6 +144,45 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     private float archivistBookOldRot;
     private float archivistBookTargetRot;
     private final InvWrapper fullItemHandler = new InvWrapper(this);
+    private final IItemHandler infernalAutomationHandler = new IItemHandler() {
+        @Override
+        public int getSlots() {
+            return InfernalLogic.OUTPUT_END;
+        }
+
+        @Override
+        public ItemStack getStackInSlot(int slot) {
+            return fullItemHandler.getStackInSlot(slot);
+        }
+
+        @Override
+        public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
+            if (slot < InfernalLogic.INPUT_START || slot >= InfernalLogic.INPUT_END) {
+                return stack;
+            }
+            return fullItemHandler.insertItem(slot, stack, simulate);
+        }
+
+        @Override
+        public ItemStack extractItem(int slot, int amount, boolean simulate) {
+            if (slot < InfernalLogic.OUTPUT_START || slot >= InfernalLogic.OUTPUT_END) {
+                return ItemStack.EMPTY;
+            }
+            return fullItemHandler.extractItem(slot, amount, simulate);
+        }
+
+        @Override
+        public int getSlotLimit(int slot) {
+            return fullItemHandler.getSlotLimit(slot);
+        }
+
+        @Override
+        public boolean isItemValid(int slot, ItemStack stack) {
+            return slot >= InfernalLogic.INPUT_START
+                    && slot < InfernalLogic.INPUT_END
+                    && fullItemHandler.isItemValid(slot, stack);
+        }
+    };
     private final IItemHandler resonanceStorageHandler = new RangedWrapper(
             fullItemHandler,
             0,
@@ -239,6 +288,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
 
     public IItemHandler getItemHandler() {
         return switch (kind()) {
+            case INFERNAL -> infernalAutomationHandler;
             case RESONANT -> resonanceStorageHandler;
             case ARCHIVIST -> archivistInputHandler;
             default -> fullItemHandler;
@@ -254,9 +304,95 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     @Override
     public void setChanged() {
         super.setChanged();
-        if (kind() == ChestKind.ENDER_DISPATCH) {
+        if (kind() == ChestKind.ENDER_DISPATCH
+                && !dispatchInternalMutation
+                && (level == null || !level.isClientSide)) {
+            // Preserve the old behavior of delaying a fresh dispatch after an
+            // inventory edit. If a preview is already running, it stays visible
+            // until its transfer tick and is validated again there.
             dispatchCooldown = DispatchLogic.TRANSFER_DELAY_TICKS;
         }
+    }
+
+    public ItemStack getDispatchPreviewStack() {
+        return dispatchPreviewStack;
+    }
+
+    private void beginDispatchPreview(DispatchLogic.Preview preview) {
+        dispatchPreviewSlot = preview.sourceSlot();
+        dispatchPreviewStack = preview.stack().copy();
+        dispatchPreviewTicks = DispatchLogic.PREVIEW_TICKS;
+        syncDispatchPreview();
+    }
+
+    private void clearDispatchPreview(boolean sync) {
+        boolean hadPreview = !dispatchPreviewStack.isEmpty();
+        dispatchPreviewSlot = -1;
+        dispatchPreviewTicks = 0;
+        dispatchPreviewStack = ItemStack.EMPTY;
+        if (sync && hadPreview) {
+            syncDispatchPreview();
+        }
+    }
+
+    private void syncDispatchPreview() {
+        if (level == null || level.isClientSide || kind() != ChestKind.ENDER_DISPATCH) return;
+        BlockState state = getBlockState();
+        level.sendBlockUpdated(worldPosition, state, state, Block.UPDATE_CLIENTS);
+    }
+
+    private void readDispatchPreviewTag(CompoundTag tag, HolderLookup.Provider registries) {
+        if (tag.contains(DISPATCH_PREVIEW_TAG, Tag.TAG_COMPOUND)) {
+            dispatchPreviewStack = ItemStack.parseOptional(
+                    registries,
+                    tag.getCompound(DISPATCH_PREVIEW_TAG)
+            );
+        } else {
+            dispatchPreviewStack = ItemStack.EMPTY;
+        }
+    }
+
+    @Override
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        if (kind() != ChestKind.ENDER_DISPATCH) {
+            return super.getUpdateTag(registries);
+        }
+
+        CompoundTag tag = new CompoundTag();
+        if (!dispatchPreviewStack.isEmpty()) {
+            tag.put(DISPATCH_PREVIEW_TAG, dispatchPreviewStack.save(registries));
+        }
+        return tag;
+    }
+
+    @Override
+    public Packet<ClientGamePacketListener> getUpdatePacket() {
+        if (kind() == ChestKind.ENDER_DISPATCH) {
+            return ClientboundBlockEntityDataPacket.create(this);
+        }
+        return super.getUpdatePacket();
+    }
+
+    @Override
+    public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
+        if (kind() == ChestKind.ENDER_DISPATCH) {
+            readDispatchPreviewTag(tag, registries);
+            return;
+        }
+        loadWithComponents(tag, registries);
+    }
+
+    @Override
+    public void onDataPacket(
+            Connection connection,
+            ClientboundBlockEntityDataPacket packet,
+            HolderLookup.Provider registries
+    ) {
+        if (kind() == ChestKind.ENDER_DISPATCH) {
+            readDispatchPreviewTag(packet.getTag(), registries);
+            return;
+        }
+        loadWithComponents(packet.getTag(), registries);
     }
 
     @Override
@@ -416,6 +552,9 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
 
     @Override
     public boolean canTakeItemThroughFace(int slot, ItemStack stack, Direction direction) {
+        if (kind() == ChestKind.INFERNAL) {
+            return slot >= InfernalLogic.OUTPUT_START && slot < InfernalLogic.OUTPUT_END;
+        }
         return kind() != ChestKind.SCULK_SENTINEL
                 && kind() != ChestKind.ARCHIVIST;
     }
@@ -678,6 +817,9 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         dispatchCooldown = tag.contains("DispatchCooldown")
                 ? tag.getInt("DispatchCooldown")
                 : DispatchLogic.TRANSFER_DELAY_TICKS;
+        dispatchPreviewTicks = 0;
+        dispatchPreviewSlot = -1;
+        dispatchPreviewStack = ItemStack.EMPTY;
 
         resonanceNodeId = tag.hasUUID(RESONANCE_NODE_TAG) ? tag.getUUID(RESONANCE_NODE_TAG) : null;
         resonanceAttunementTicks = tag.getInt(RESONANCE_ATTUNEMENT_TAG);
@@ -1198,14 +1340,44 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         }
 
         if (chest.kind() == ChestKind.ENDER_DISPATCH) {
-            if (chest.dispatchCooldown > 0) {
-                chest.dispatchCooldown--;
+            if (!chest.dispatchPreviewStack.isEmpty()) {
+                if (chest.dispatchPreviewTicks > 0) {
+                    chest.dispatchPreviewTicks--;
+                }
+
+                if (chest.dispatchPreviewTicks <= 0) {
+                    boolean moved;
+                    chest.dispatchInternalMutation = true;
+                    try {
+                        moved = DispatchLogic.dispatchPreviewed(
+                                level,
+                                pos,
+                                chest,
+                                chest.dispatchPreviewSlot,
+                                chest.dispatchPreviewStack
+                        );
+                    } finally {
+                        chest.dispatchInternalMutation = false;
+                    }
+
+                    chest.clearDispatchPreview(true);
+                    chest.dispatchCooldown = moved
+                            ? DispatchLogic.POST_TRANSFER_GAP_TICKS
+                            : DispatchLogic.RETRY_DELAY_TICKS;
+                }
             } else {
-                boolean moved = DispatchLogic.dispatchOne(level, pos, chest);
-                chest.dispatchCooldown = moved
-                        ? DispatchLogic.TRANSFER_DELAY_TICKS
-                        : DispatchLogic.RETRY_DELAY_TICKS;
-                if (moved) chest.setChanged();
+                if (chest.dispatchCooldown > 0) {
+                    chest.dispatchCooldown--;
+                }
+
+                if (chest.dispatchCooldown <= 0) {
+                    DispatchLogic.Preview preview = DispatchLogic.findPreview(level, pos, chest);
+                    if (preview != null) {
+                        chest.beginDispatchPreview(preview);
+                    } else {
+                        chest.dispatchCooldown = DispatchLogic.RETRY_DELAY_TICKS;
+                    }
+                }
             }
         }
 

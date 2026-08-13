@@ -10,26 +10,35 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 public final class CollectorLogic {
     public static final int RADIUS = 8;
     public static final int TICK_INTERVAL = 1;
 
     /*
-     * Horizontal movement uses capped acceleration rather than replacing the
-     * velocity with a new direction every tick. This keeps the travel speed
-     * from the previous build while removing most small direction corrections.
+     * Keep the same target speeds as v19, but steer toward them with a small
+     * per-tick lerp. This makes horizontal motion feel less step-like while
+     * preserving the physical hop/fall behavior.
      */
-    private static final double MIN_CRUISE_SPEED = 0.035;
-    private static final double MAX_CRUISE_SPEED = 0.085;
-    private static final double GROUND_ACCELERATION = 0.0065;
-    private static final double AIR_ACCELERATION = 0.0045;
+    private static final double MIN_CRUISE_SPEED = 0.080;
+    private static final double MAX_CRUISE_SPEED = 0.180;
+    private static final double CRUISE_STEERING = 0.24;
 
     private static final double FINAL_APPROACH_RADIUS = 1.40;
-    private static final double FINAL_APPROACH_SPEED = 0.105;
-    private static final double FINAL_ACCELERATION = 0.011;
+    private static final double FINAL_APPROACH_SPEED = 0.220;
+    private static final double FINAL_STEERING = 0.32;
+    // Start the lid hop only when the item is close enough that the 0.425 Y arc
+    // reaches the collector intake near the horizontal center instead of sailing
+    // over it while still too high.
+    private static final double FINAL_JUMP_RADIUS = 0.82;
     private static final double FINAL_JUMP_VELOCITY = 0.425;
 
     private static final double STEP_PROBE_DISTANCE = 0.46;
@@ -39,9 +48,25 @@ public final class CollectorLogic {
     private static final double ROUTE_SAMPLE_SPACING = 0.25;
     private static final double ROUTE_TARGET_MARGIN = 0.78;
 
+    /*
+     * A dropped item may sit inside the radius of multiple Collector Chests.
+     * Without ownership, every chest writes a different velocity into the same
+     * ItemEntity during the same server tick, which makes equidistant items
+     * stall or visibly twitch. Keep a short-lived claim so only one collector
+     * steers an item at a time.
+     */
+    private static final int CLAIM_TIMEOUT_TICKS = 6;
+    private static final int CLAIM_CLEANUP_AGE_TICKS = 40;
+    private static final double CLAIM_TAKEOVER_MARGIN = 0.50;
+    private static final double CLAIM_TIE_EPSILON = 0.05;
+    private static final Map<UUID, CollectorClaim> CLAIMS = new HashMap<>();
+    private static long lastClaimCleanupTick = Long.MIN_VALUE;
+
     private CollectorLogic() {}
 
     public static boolean tick(ServerLevel level, BlockPos origin, Container target) {
+        cleanupExpiredClaims(level.getGameTime());
+
         Vec3 destination = new Vec3(
                 origin.getX() + 0.5,
                 origin.getY() + 1.10,
@@ -64,11 +89,17 @@ public final class CollectorLogic {
                 ItemEntity::isAlive
         )) {
             ItemStack stack = itemEntity.getItem();
-            if (!ChestRules.canStore(stack) || !InventoryTransfer.canInsertAny(target, stack)) continue;
+            if (!ChestRules.canStore(stack) || !InventoryTransfer.canInsertAny(target, stack)) {
+                releaseClaimIfOwned(level, origin, itemEntity);
+                continue;
+            }
 
             Vec3 itemCenter = itemEntity.position().add(0.0, itemEntity.getBbHeight() * 0.5, 0.0);
             Vec3 offset = destination.subtract(itemCenter);
-            if (offset.lengthSqr() > RADIUS * RADIUS) continue;
+            if (offset.lengthSqr() > RADIUS * RADIUS) {
+                releaseClaimIfOwned(level, origin, itemEntity);
+                continue;
+            }
 
             /*
              * The sampled corridor accepts a free direct route or a route that
@@ -76,7 +107,12 @@ public final class CollectorLogic {
              * blocks collection, while slabs and partial collision shapes are
              * handled by their real collision boxes.
              */
-            if (!hasNavigableCorridor(level, itemEntity, destination)) continue;
+            if (!hasNavigableCorridor(level, itemEntity, destination)) {
+                releaseClaimIfOwned(level, origin, itemEntity);
+                continue;
+            }
+
+            if (!claimForCollector(level, origin, itemEntity, itemCenter, destination)) continue;
 
             if (itemEntity.getBoundingBox().intersects(intake)) {
                 ItemStack moving = stack.copy();
@@ -84,6 +120,7 @@ public final class CollectorLogic {
                 if (moved <= 0) continue;
 
                 changed = true;
+                CLAIMS.remove(itemEntity.getUUID());
                 if (moving.isEmpty()) {
                     itemEntity.discard();
                 } else {
@@ -122,6 +159,96 @@ public final class CollectorLogic {
         return changed;
     }
 
+    private static boolean claimForCollector(
+            ServerLevel level,
+            BlockPos origin,
+            ItemEntity itemEntity,
+            Vec3 itemCenter,
+            Vec3 destination
+    ) {
+        UUID itemId = itemEntity.getUUID();
+        ResourceKey<Level> dimension = level.dimension();
+        long now = level.getGameTime();
+        CollectorClaim current = CLAIMS.get(itemId);
+
+        if (current == null
+                || !current.dimension.equals(dimension)
+                || now - current.lastRefreshTick > CLAIM_TIMEOUT_TICKS) {
+            CLAIMS.put(itemId, new CollectorClaim(dimension, origin.immutable(), now));
+            return true;
+        }
+
+        if (current.owner.equals(origin)) {
+            current.lastRefreshTick = now;
+            return true;
+        }
+
+        Vec3 ownerDestination = new Vec3(
+                current.owner.getX() + 0.5,
+                current.owner.getY() + 1.10,
+                current.owner.getZ() + 0.5
+        );
+        double candidateDistance = itemCenter.distanceTo(destination);
+        double ownerDistance = itemCenter.distanceTo(ownerDestination);
+
+        boolean clearlyCloser = candidateDistance + CLAIM_TAKEOVER_MARGIN < ownerDistance;
+        boolean tied = Math.abs(candidateDistance - ownerDistance) <= CLAIM_TIE_EPSILON;
+        boolean winsTie = tied && compareCollectorPositions(origin, current.owner) < 0;
+
+        if (clearlyCloser || winsTie) {
+            CLAIMS.put(itemId, new CollectorClaim(dimension, origin.immutable(), now));
+            return true;
+        }
+
+        return false;
+    }
+
+    private static void releaseClaimIfOwned(
+            ServerLevel level,
+            BlockPos origin,
+            ItemEntity itemEntity
+    ) {
+        CollectorClaim current = CLAIMS.get(itemEntity.getUUID());
+        if (current != null
+                && current.dimension.equals(level.dimension())
+                && current.owner.equals(origin)) {
+            CLAIMS.remove(itemEntity.getUUID());
+        }
+    }
+
+    private static int compareCollectorPositions(BlockPos first, BlockPos second) {
+        int x = Integer.compare(first.getX(), second.getX());
+        if (x != 0) return x;
+        int y = Integer.compare(first.getY(), second.getY());
+        if (y != 0) return y;
+        return Integer.compare(first.getZ(), second.getZ());
+    }
+
+    private static void cleanupExpiredClaims(long now) {
+        if (lastClaimCleanupTick != Long.MIN_VALUE && now < lastClaimCleanupTick) {
+            // Handles switching/reloading worlds in the same client/server JVM,
+            // where the new world's game time may start below the old one.
+            CLAIMS.clear();
+            lastClaimCleanupTick = now;
+            return;
+        }
+        if (lastClaimCleanupTick != Long.MIN_VALUE && now - lastClaimCleanupTick < 20L) return;
+        lastClaimCleanupTick = now;
+        CLAIMS.entrySet().removeIf(entry -> now - entry.getValue().lastRefreshTick > CLAIM_CLEANUP_AGE_TICKS);
+    }
+
+    private static final class CollectorClaim {
+        private final ResourceKey<Level> dimension;
+        private final BlockPos owner;
+        private long lastRefreshTick;
+
+        private CollectorClaim(ResourceKey<Level> dimension, BlockPos owner, long lastRefreshTick) {
+            this.dimension = dimension;
+            this.owner = owner;
+            this.lastRefreshTick = lastRefreshTick;
+        }
+    }
+
     private static void steerItem(
             ServerLevel level,
             BlockPos origin,
@@ -134,6 +261,11 @@ public final class CollectorLogic {
         Vec3 horizontalOffset = new Vec3(offset.x, 0.0, offset.z);
 
         if (horizontalOffset.lengthSqr() < 1.0E-7) {
+            // Once the item reaches the exact horizontal center, kill only the
+            // X/Z drift. Keep its Y velocity so the existing hop/fall arc stays
+            // intact and the item drops straight into the intake.
+            itemEntity.setDeltaMovement(0.0, current.y, 0.0);
+            itemEntity.hasImpulse = true;
             return;
         }
 
@@ -141,23 +273,35 @@ public final class CollectorLogic {
         boolean finalApproach = horizontalDistance <= FINAL_APPROACH_RADIUS;
 
         double desiredSpeed;
-        double acceleration;
+        double steering;
         if (finalApproach) {
             desiredSpeed = FINAL_APPROACH_SPEED;
-            acceleration = FINAL_ACCELERATION;
+            steering = FINAL_STEERING;
         } else {
             desiredSpeed = Math.min(
                     MAX_CRUISE_SPEED,
                     MIN_CRUISE_SPEED + horizontalDistance * 0.006
             );
-            acceleration = itemEntity.onGround()
-                    ? GROUND_ACCELERATION
-                    : AIR_ACCELERATION;
+            steering = CRUISE_STEERING;
         }
 
         Vec3 desiredHorizontal = horizontalDirection.scale(desiredSpeed);
-        double nextX = approach(current.x, desiredHorizontal.x, acceleration);
-        double nextZ = approach(current.z, desiredHorizontal.z, acceleration);
+        double nextX = Mth.lerp(steering, current.x, desiredHorizontal.x);
+        double nextZ = Mth.lerp(steering, current.z, desiredHorizontal.z);
+
+        if (finalApproach) {
+            /*
+             * Never let the accelerated final approach step travel farther than
+             * the remaining horizontal distance to the collector center. This
+             * removes the fast-build overshoot without slowing normal travel.
+             */
+            double nextHorizontalSpeed = Math.sqrt(nextX * nextX + nextZ * nextZ);
+            if (nextHorizontalSpeed > horizontalDistance) {
+                nextX = horizontalDirection.x * horizontalDistance;
+                nextZ = horizontalDirection.z * horizontalDistance;
+            }
+        }
+
         double nextY = current.y;
         boolean jumped = false;
 
@@ -170,7 +314,7 @@ public final class CollectorLogic {
             nextY = Math.min(current.y, 0.0);
 
             boolean belowLid = itemCenter.y < origin.getY() + 0.98;
-            if (finalApproach && belowLid) {
+            if (finalApproach && horizontalDistance <= FINAL_JUMP_RADIUS && belowLid) {
                 nextY = FINAL_JUMP_VELOCITY;
                 jumped = true;
             } else if (needsStepUp(level, itemEntity, horizontalDirection)) {
@@ -181,10 +325,6 @@ public final class CollectorLogic {
 
         Vec3 next = new Vec3(nextX, nextY, nextZ);
         applyVelocity(itemEntity, current, next, jumped);
-    }
-
-    private static double approach(double current, double target, double maximumChange) {
-        return current + Mth.clamp(target - current, -maximumChange, maximumChange);
     }
 
     private static boolean needsStepUp(
@@ -221,14 +361,12 @@ public final class CollectorLogic {
         itemEntity.setDeltaMovement(next);
 
         /*
-         * Sending a velocity packet every tick can create visible micro
-         * corrections. Normal gliding is synchronized in small batches, while
-         * jumps are sent immediately so the client starts the arc at once.
+         * Collector steering is intentionally synchronized every tick. The
+         * velocity itself is still changed gradually by the steering lerp,
+         * so this removes the old four-tick visual stepping without turning
+         * the item into a hard-snapping magnet. Jumps keep the same physics.
          */
-        double changeSqr = next.subtract(previous).lengthSqr();
-        if (forceSync || itemEntity.tickCount % 4 == 0 || changeSqr > 0.0016) {
-            itemEntity.hasImpulse = true;
-        }
+        itemEntity.hasImpulse = true;
     }
 
     private static boolean hasNavigableCorridor(
