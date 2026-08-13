@@ -40,6 +40,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.Containers;
 import net.minecraft.world.WorldlyContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -577,17 +578,60 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     }
 
     public void loadFromPlacedStack(ItemStack stack) {
+        // Keep compatibility with chest items created by older versions: their stored
+        // inventory can still be restored once when placed. Resonant identity itself
+        // is intentionally never restored from an item anymore; a placed chest is a
+        // new network node and must be attuned again with a crystal.
         applyComponentsFromItemStack(stack);
+        if (kind() == ChestKind.RESONANT) {
+            resonanceNodeId = null;
+            resonanceReceivedSlots.clear();
+            resonanceAttunementTicks = 0;
+            resonanceTransferCooldown = ResonanceLogic.TRANSFER_DELAY_TICKS;
+        }
         setChanged();
     }
 
     public void ensureResonanceInitialized() {
         if (kind() != ChestKind.RESONANT || resonanceNodeId != null) return;
         resonanceNodeId = UUID.randomUUID();
-        if (items.get(ResonanceLogic.CRYSTAL_SLOT).isEmpty()) {
-            items.set(ResonanceLogic.CRYSTAL_SLOT, new ItemStack(ModItems.RESONANCE_CRYSTAL.get()));
-        }
+        // No free crystal is generated on placement. A dormant crafted crystal must
+        // be inserted and will attune to this new node through the normal mechanic.
         resonanceTransferCooldown = ResonanceLogic.TRANSFER_DELAY_TICKS;
+        setChanged();
+    }
+
+    /**
+     * Drops every real stored item into the world and clears the block inventory.
+     * Internal oversized stacks (Compression, Archivist, Witch) are split back into
+     * legal vanilla-sized ItemStacks before spawning, so no hidden container data is
+     * needed on the dropped chest item.
+     */
+    public void dropStoredContents(Level level, BlockPos pos) {
+        if (level.isClientSide) return;
+
+        for (int slot = 0; slot < items.size(); slot++) {
+            ItemStack stored = items.get(slot);
+            if (stored.isEmpty()) continue;
+
+            int remaining = stored.getCount();
+            int legalStackSize = Math.max(1, stored.getMaxStackSize());
+            while (remaining > 0) {
+                int amount = Math.min(legalStackSize, remaining);
+                Containers.dropItemStack(
+                        level,
+                        pos.getX() + 0.5D,
+                        pos.getY() + 0.5D,
+                        pos.getZ() + 0.5D,
+                        stored.copyWithCount(amount)
+                );
+                remaining -= amount;
+            }
+            items.set(slot, ItemStack.EMPTY);
+        }
+
+        resonanceReceivedSlots.clear();
+        clearDispatchPreview(false);
         setChanged();
     }
 
@@ -851,18 +895,10 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
 
     @Override
     protected void collectImplicitComponents(net.minecraft.core.component.DataComponentMap.Builder builder) {
+        // Curious Chest block-items are intentionally ordinary empty block items now.
+        // Inventory, Resonant node identity, Sentinel state, etc. remain world/block
+        // state only and are never copied onto the dropped chest item.
         super.collectImplicitComponents(builder);
-        NonNullList<ItemStack> componentItems = kind() == ChestKind.BOTTOMLESS
-                ? BottomlessStorage.splitForSerialization(items)
-                : items;
-        builder.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(componentItems));
-        if (kind() == ChestKind.RESONANT && resonanceNodeId != null) {
-            builder.set(ModDataComponents.RESONANCE_ID.get(), resonanceNodeId);
-            List<Integer> receivedSlots = resonanceReceivedSlots.stream().boxed().toList();
-            if (!receivedSlots.isEmpty()) {
-                builder.set(ModDataComponents.RESONANCE_RECEIVED_SLOTS.get(), receivedSlots);
-            }
-        }
     }
 
     @Override

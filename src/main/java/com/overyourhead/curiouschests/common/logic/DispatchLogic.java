@@ -2,6 +2,7 @@ package com.overyourhead.curiouschests.common.logic;
 
 import com.overyourhead.curiouschests.CuriousChestsMod;
 import com.overyourhead.curiouschests.common.blockentity.SpecialChestBlockEntity;
+import com.overyourhead.curiouschests.common.chest.ChestKind;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
@@ -58,8 +59,17 @@ public final class DispatchLogic {
             ItemStack stack = source.getItem(sourceSlot);
             if (stack.isEmpty()) continue;
 
+            // The two themed Curious Chests are intentional exceptions to the normal
+            // "never dispatch into another special chest" rule. They get first refusal
+            // only for the exact item family they are designed to store.
             for (Target target : targets) {
-                if (target.canInsertAny(stack)) {
+                if (target.isSpecializedMatch(stack) && target.canInsertAny(stack)) {
+                    return new Preview(sourceSlot, stack.copyWithCount(1));
+                }
+            }
+
+            for (Target target : targets) {
+                if (!target.isSpecialized() && target.canInsertAny(stack)) {
                     // The floating render represents the item type, not a literal
                     // dropped stack count. Preserve every data component, but show one.
                     return new Preview(sourceSlot, stack.copyWithCount(1));
@@ -99,15 +109,15 @@ public final class DispatchLogic {
         Set<BlockPos> preferredPositions = new HashSet<>();
 
         /*
-         * A storage target that already contains the same ITEM ID is always a
-         * sorting destination before a closer empty target. Components are
-         * deliberately ignored for choosing the destination, while the actual
-         * insertion remains component-safe and obeys the target's own handler.
+         * Specialized routing has absolute priority:
+         *  - processable enchanted books -> Archivist
+         *  - potion-content items -> Witch's Chest
+         * No other item is ever offered to those special chests. If every matching
+         * special chest is full/unavailable, normal Dispatch sorting takes over.
          */
         for (Target target : targets) {
-            if (!target.containsSameItem(moving)) continue;
+            if (!target.isSpecializedMatch(moving)) continue;
 
-            preferredPositions.add(target.pos());
             int inserted = target.insert(moving);
             if (inserted > 0 && visualTarget == null) {
                 visualTarget = target;
@@ -115,10 +125,29 @@ public final class DispatchLogic {
             if (moving.isEmpty()) break;
         }
 
-        // Only after all matching storage is full do we use nearest free storage.
+        /*
+         * A normal storage target that already contains the same ITEM ID is always a
+         * sorting destination before a closer empty target. Components are
+         * deliberately ignored for choosing the destination, while the actual
+         * insertion remains component-safe and obeys the target's own handler.
+         */
         if (!moving.isEmpty()) {
             for (Target target : targets) {
-                if (preferredPositions.contains(target.pos())) continue;
+                if (target.isSpecialized() || !target.containsSameItem(moving)) continue;
+
+                preferredPositions.add(target.pos());
+                int inserted = target.insert(moving);
+                if (inserted > 0 && visualTarget == null) {
+                    visualTarget = target;
+                }
+                if (moving.isEmpty()) break;
+            }
+        }
+
+        // Only after all matching normal storage is full do we use nearest free storage.
+        if (!moving.isEmpty()) {
+            for (Target target : targets) {
+                if (target.isSpecialized() || preferredPositions.contains(target.pos())) continue;
 
                 int inserted = target.insert(moving);
                 if (inserted > 0 && visualTarget == null) {
@@ -157,8 +186,29 @@ public final class DispatchLogic {
             if (state.is(TARGET_BLACKLIST)) continue;
 
             BlockEntity blockEntity = level.getBlockEntity(pos);
-            // Never create a dispatch loop between Curious Chests.
-            if (blockEntity instanceof SpecialChestBlockEntity) continue;
+            if (blockEntity instanceof SpecialChestBlockEntity specialChest) {
+                // Compression/Bottomless is ordinary storage from Dispatch's point
+                // of view, so let it participate in the same sorting rules as chests,
+                // barrels and modded storage. All of its own slot limits are still
+                // enforced by the exposed item handler.
+                if (specialChest.kind() == ChestKind.BOTTOMLESS) {
+                    result.add(Target.forHandler(pos, specialChest.getItemHandler()));
+                    continue;
+                }
+
+                // Archivist and Witch are the only themed routing exceptions. They
+                // remain specialized so books/potions get first refusal, while no
+                // unrelated item is ever offered to them.
+                if (specialChest.kind() == ChestKind.ARCHIVIST
+                        || specialChest.kind() == ChestKind.WITCH) {
+                    result.add(Target.forSpecialHandler(
+                            pos,
+                            specialChest.getItemHandler(),
+                            specialChest.kind()
+                    ));
+                }
+                continue;
+            }
 
             // Prefer NeoForge's capability so modded storage can enforce its own
             // slot/side/stack rules. Container remains a fallback for inventories
@@ -267,13 +317,36 @@ public final class DispatchLogic {
 
     public record Preview(int sourceSlot, ItemStack stack) {}
 
-    private record Target(BlockPos pos, IItemHandler handler, Container container) {
+    private record Target(
+            BlockPos pos,
+            IItemHandler handler,
+            Container container,
+            ChestKind specializedKind
+    ) {
         private static Target forHandler(BlockPos pos, IItemHandler handler) {
-            return new Target(pos, handler, null);
+            return new Target(pos, handler, null, null);
         }
 
         private static Target forContainer(BlockPos pos, Container container) {
-            return new Target(pos, null, container);
+            return new Target(pos, null, container, null);
+        }
+
+        private static Target forSpecialHandler(BlockPos pos, IItemHandler handler, ChestKind kind) {
+            return new Target(pos, handler, null, kind);
+        }
+
+        private boolean isSpecialized() {
+            return specializedKind != null;
+        }
+
+        private boolean isSpecializedMatch(ItemStack stack) {
+            if (specializedKind == ChestKind.ARCHIVIST) {
+                return ArchivistLogic.isProcessableBook(stack);
+            }
+            if (specializedKind == ChestKind.WITCH) {
+                return WitchLogic.isSupported(stack);
+            }
+            return false;
         }
 
         private boolean canInsertAny(ItemStack stack) {

@@ -15,7 +15,7 @@ public final class SpecialChestBlockItem extends BlockItem {
     private final ChestKind kind;
 
     public SpecialChestBlockItem(Block block, ChestKind kind, Item.Properties properties) {
-        super(block, properties.stacksTo(1));
+        super(block, properties);
         this.kind = kind;
     }
 
@@ -36,6 +36,10 @@ public final class SpecialChestBlockItem extends BlockItem {
         if (kind == ChestKind.INFERNAL) {
             tooltip.add(Component.translatable(prefix + ".warning")
                     .withStyle(ChatFormatting.RED));
+        }
+        if (kind == ChestKind.RESONANT) {
+            tooltip.add(Component.translatable(prefix + ".rebind_hint")
+                    .withStyle(ChatFormatting.DARK_PURPLE));
         }
         if (kind == ChestKind.ARCHIVIST) {
             tooltip.add(Component.translatable(prefix + ".catalog_hint")

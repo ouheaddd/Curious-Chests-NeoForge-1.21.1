@@ -15,7 +15,7 @@
   "tooltip.curiouschests.bottomless.ability": "Compresses enormous stacks into each storage slot.",
   "tooltip.curiouschests.infernal.lore_1": "Forged where stone melts without flame.",
   "tooltip.curiouschests.infernal.lore_2": "The furnace within never asks for fuel.",
-  "tooltip.curiouschests.infernal.ability": "Smelts one item every 7.5s without fuel; overflow is ejected in front.",
+  "tooltip.curiouschests.infernal.ability": "Smelts items without fuel; overflow is ejected in front.",
   "tooltip.curiouschests.infernal.warning": "Warning: unsmeltable items are incinerated one at a time.",
   "tooltip.curiouschests.ender_dispatch.lore_1": "It remembers every storehouse it has seen.",
   "tooltip.curiouschests.ender_dispatch.lore_2": "Yet it belongs to none of them.",
@@ -65,5 +65,6 @@
   "tooltip.curiouschests.witch.lore_2": "Even the strangest mixtures know their proper shelf.",
   "tooltip.curiouschests.witch.ability": "Stores drinkable, splash and lingering potions; matching potions stack to 16.",
   "gui.curiouschests.archivist.catalog_title": "Archivist's Index",
-  "gui.curiouschests.archivist.catalog_empty": "No enchantments stored."
+  "gui.curiouschests.archivist.catalog_empty": "No enchantments stored.",
+  "tooltip.curiouschests.resonant.rebind_hint": "Replacing the chest creates a new resonance; previously attuned crystals no longer work."
 }

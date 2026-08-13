@@ -15,7 +15,7 @@
   "tooltip.curiouschests.bottomless.ability": "Спрессовывает огромные стаки в каждом слоте хранилища.",
   "tooltip.curiouschests.infernal.lore_1": "Выкован там, где камень плавится без огня.",
   "tooltip.curiouschests.infernal.lore_2": "Печь внутри него никогда не просит топлива.",
-  "tooltip.curiouschests.infernal.ability": "Плавит по 1 предмету каждые 7,5 с без топлива; излишки выплёвывает вперёд.",
+  "tooltip.curiouschests.infernal.ability": "Плавит предметы без топлива; излишки выплёвывает вперёд.",
   "tooltip.curiouschests.infernal.warning": "Внимание: непереплавляемые предметы сжигаются по одному.",
   "tooltip.curiouschests.ender_dispatch.lore_1": "Он помнит каждое хранилище, которое видел.",
   "tooltip.curiouschests.ender_dispatch.lore_2": "Но не принадлежит ни одному из них.",
@@ -65,5 +65,6 @@
   "tooltip.curiouschests.witch.lore_2": "Даже самая странная смесь находит здесь свою полку.",
   "tooltip.curiouschests.witch.ability": "Хранит обычные, взрывные и оседающие зелья; одинаковые стакаются до 16.",
   "gui.curiouschests.archivist.catalog_title": "Каталог архивариуса",
-  "gui.curiouschests.archivist.catalog_empty": "В архиве пока нет чар."
+  "gui.curiouschests.archivist.catalog_empty": "В архиве пока нет чар.",
+  "tooltip.curiouschests.resonant.rebind_hint": "После перестановки сундук создаёт новый резонанс; старые настроенные кристаллы больше не работают."
 }

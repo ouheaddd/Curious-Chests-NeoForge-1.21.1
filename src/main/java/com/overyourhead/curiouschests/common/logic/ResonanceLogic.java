@@ -17,6 +17,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.Containers;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -89,7 +90,19 @@ public final class ResonanceLogic {
         if (nodeId == null) return;
 
         unregister(chest);
-        network(level).unregisterNode(nodeId, level.dimension(), chest.getBlockPos());
+        ResonanceNetworkData data = network(level);
+        for (ItemStack pending : data.takePending(nodeId)) {
+            if (!pending.isEmpty()) {
+                Containers.dropItemStack(
+                        level,
+                        chest.getBlockPos().getX() + 0.5D,
+                        chest.getBlockPos().getY() + 0.5D,
+                        chest.getBlockPos().getZ() + 0.5D,
+                        pending
+                );
+            }
+        }
+        data.unregisterNode(nodeId, level.dimension(), chest.getBlockPos());
     }
 
     public static Optional<SpecialChestBlockEntity> findLoaded(UUID nodeId) {
@@ -420,13 +433,25 @@ public final class ResonanceLogic {
             }
 
             nodes.remove(nodeId);
-            // Intentionally keep already queued items. New items can no longer be sent while
-            // the endpoint is absent; if the same UUID is placed again, old mail can still arrive.
+            // Physical removal destroys this network identity. Pending mail is drained by
+            // unregisterPlaced before the endpoint record is removed.
             setDirty();
         }
 
         private NodeRef getNode(UUID nodeId) {
             return nodes.get(nodeId);
+        }
+
+        private List<ItemStack> takePending(UUID nodeId) {
+            List<ItemStack> queue = pending.remove(nodeId);
+            if (queue == null || queue.isEmpty()) return List.of();
+
+            List<ItemStack> result = new ArrayList<>(queue.size());
+            for (ItemStack stack : queue) {
+                if (!stack.isEmpty()) result.add(stack.copy());
+            }
+            setDirty();
+            return result;
         }
 
         /** Returns the number of items accepted by the persistent mailbox. */

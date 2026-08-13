@@ -149,10 +149,16 @@ public abstract class AbstractSpecialChestBlock extends BaseEntityBlock {
     ) {
         if (!level.isClientSide
                 && state.getBlock() != newState.getBlock()
-                && kind() == ChestKind.RESONANT
-                && level instanceof ServerLevel serverLevel
                 && level.getBlockEntity(pos) instanceof SpecialChestBlockEntity chest) {
-            ResonanceLogic.unregisterPlaced(serverLevel, chest);
+            // Vanilla-container behavior: the block item is empty and every stored
+            // item is materialized into the world when the chest is actually removed.
+            chest.dropStoredContents(level, pos);
+
+            if (kind() == ChestKind.RESONANT && level instanceof ServerLevel serverLevel) {
+                ResonanceLogic.unregisterPlaced(serverLevel, chest);
+            }
+
+            level.updateNeighbourForOutputSignal(pos, this);
         }
         super.onRemove(state, level, pos, newState, movedByPiston);
     }
