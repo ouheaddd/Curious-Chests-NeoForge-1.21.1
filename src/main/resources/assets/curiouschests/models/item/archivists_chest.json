@@ -2,7 +2,7 @@
   "parent": "minecraft:builtin/entity",
   "gui_light": "side",
   "textures": {
-    "particle": "curiouschests:block/archivists_chest"
+    "particle": "curiouschests:entity/chest/archivist"
   },
   "display": {
     "thirdperson_righthand": {

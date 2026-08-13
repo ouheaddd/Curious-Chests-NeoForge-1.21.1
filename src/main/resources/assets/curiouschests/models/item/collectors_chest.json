@@ -2,7 +2,7 @@
   "parent": "minecraft:builtin/entity",
   "gui_light": "side",
   "textures": {
-    "particle": "curiouschests:block/collectors_chest"
+    "particle": "curiouschests:entity/chest/collectors"
   },
   "display": {
     "thirdperson_righthand": {

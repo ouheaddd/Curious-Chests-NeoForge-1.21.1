@@ -145,6 +145,71 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     private float archivistBookOldRot;
     private float archivistBookTargetRot;
     private final InvWrapper fullItemHandler = new InvWrapper(this);
+    /**
+     * Automation view for Compression/Bottomless storage. InvWrapper follows the
+     * item's vanilla max stack size when merging, which would cap automated
+     * inserts at 64 even though this chest intentionally stores up to 256 in one
+     * visible slot. This handler keeps the chest's real per-slot rules.
+     */
+    private final IItemHandler bottomlessAutomationHandler = new IItemHandler() {
+        @Override
+        public int getSlots() {
+            return getContainerSize();
+        }
+
+        @Override
+        public ItemStack getStackInSlot(int slot) {
+            return fullItemHandler.getStackInSlot(slot);
+        }
+
+        @Override
+        public ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
+            if (slot < 0 || slot >= getContainerSize() || stack.isEmpty() || !canPlaceItem(slot, stack)) {
+                return stack;
+            }
+
+            ItemStack existing = items.get(slot);
+            int limit = BottomlessStorage.maxPerSlot(stack);
+            int moved;
+
+            if (existing.isEmpty()) {
+                moved = Math.min(limit, stack.getCount());
+                if (!simulate && moved > 0) {
+                    items.set(slot, stack.copyWithCount(moved));
+                    setChanged();
+                }
+            } else {
+                if (!ItemStack.isSameItemSameComponents(existing, stack)) {
+                    return stack;
+                }
+                limit = BottomlessStorage.maxPerSlot(existing);
+                moved = Math.min(Math.max(0, limit - existing.getCount()), stack.getCount());
+                if (!simulate && moved > 0) {
+                    existing.grow(moved);
+                    setChanged();
+                }
+            }
+
+            if (moved <= 0) return stack;
+            if (moved >= stack.getCount()) return ItemStack.EMPTY;
+            return stack.copyWithCount(stack.getCount() - moved);
+        }
+
+        @Override
+        public ItemStack extractItem(int slot, int amount, boolean simulate) {
+            return fullItemHandler.extractItem(slot, amount, simulate);
+        }
+
+        @Override
+        public int getSlotLimit(int slot) {
+            return BottomlessStorage.ABSOLUTE_SLOT_LIMIT;
+        }
+
+        @Override
+        public boolean isItemValid(int slot, ItemStack stack) {
+            return slot >= 0 && slot < getContainerSize() && canPlaceItem(slot, stack);
+        }
+    };
     private final IItemHandler infernalAutomationHandler = new IItemHandler() {
         @Override
         public int getSlots() {
@@ -289,6 +354,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
 
     public IItemHandler getItemHandler() {
         return switch (kind()) {
+            case BOTTOMLESS -> bottomlessAutomationHandler;
             case INFERNAL -> infernalAutomationHandler;
             case RESONANT -> resonanceStorageHandler;
             case ARCHIVIST -> archivistInputHandler;

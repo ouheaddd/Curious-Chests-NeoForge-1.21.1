@@ -2,7 +2,7 @@
   "parent": "minecraft:builtin/entity",
   "gui_light": "side",
   "textures": {
-    "particle": "curiouschests:block/ender_dispatch_chest"
+    "particle": "curiouschests:entity/chest/ender_dispatch"
   },
   "display": {
     "thirdperson_righthand": {

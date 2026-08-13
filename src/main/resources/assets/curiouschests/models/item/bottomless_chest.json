@@ -2,7 +2,7 @@
   "parent": "minecraft:builtin/entity",
   "gui_light": "side",
   "textures": {
-    "particle": "curiouschests:block/bottomless_chest"
+    "particle": "curiouschests:entity/chest/bottomless"
   },
   "display": {
     "thirdperson_righthand": {

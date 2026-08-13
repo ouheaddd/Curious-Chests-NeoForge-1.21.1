@@ -271,7 +271,22 @@ public final class DispatchLogic {
 
         int before = source.getCount();
         ItemStack remainder = source.copy();
+
+        // First top off stacks with the exact same item + components. This matters
+        // especially for Compression: 5 + an incoming 64 should become 69 in that
+        // slot instead of creating a fresh 64-stack in an earlier empty slot.
         for (int slot = 0; slot < handler.getSlots() && !remainder.isEmpty(); slot++) {
+            ItemStack present = handler.getStackInSlot(slot);
+            if (present.isEmpty() || !ItemStack.isSameItemSameComponents(present, remainder)) continue;
+            remainder = handler.insertItem(slot, remainder, false);
+        }
+
+        // Then fall back to the handler's remaining slots in its normal order.
+        // Standard inventories will use empty slots here; unusual modded handlers
+        // still get the same insertion opportunities they had before this fix.
+        for (int slot = 0; slot < handler.getSlots() && !remainder.isEmpty(); slot++) {
+            ItemStack present = handler.getStackInSlot(slot);
+            if (!present.isEmpty() && ItemStack.isSameItemSameComponents(present, remainder)) continue;
             remainder = handler.insertItem(slot, remainder, false);
         }
 

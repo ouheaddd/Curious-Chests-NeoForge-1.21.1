@@ -1,0 +1,40 @@
+{
+  "sources": [
+    {
+      "type": "single",
+      "resource": "curiouschests:particle/chest/bottomless"
+    },
+    {
+      "type": "single",
+      "resource": "curiouschests:particle/chest/infernal"
+    },
+    {
+      "type": "single",
+      "resource": "curiouschests:particle/chest/ender_dispatch"
+    },
+    {
+      "type": "single",
+      "resource": "curiouschests:particle/chest/builders"
+    },
+    {
+      "type": "single",
+      "resource": "curiouschests:particle/chest/collectors"
+    },
+    {
+      "type": "single",
+      "resource": "curiouschests:particle/chest/sculk_sentinel"
+    },
+    {
+      "type": "single",
+      "resource": "curiouschests:particle/chest/resonant"
+    },
+    {
+      "type": "single",
+      "resource": "curiouschests:particle/chest/archivist"
+    },
+    {
+      "type": "single",
+      "resource": "curiouschests:particle/chest/witch"
+    }
+  ]
+}

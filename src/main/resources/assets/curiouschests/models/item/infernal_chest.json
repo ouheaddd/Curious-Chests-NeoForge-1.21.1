@@ -2,7 +2,7 @@
   "parent": "minecraft:builtin/entity",
   "gui_light": "side",
   "textures": {
-    "particle": "curiouschests:block/infernal_chest"
+    "particle": "curiouschests:entity/chest/infernal"
   },
   "display": {
     "thirdperson_righthand": {

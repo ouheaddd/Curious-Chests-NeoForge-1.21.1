@@ -2,7 +2,7 @@
   "parent": "minecraft:builtin/entity",
   "gui_light": "side",
   "textures": {
-    "particle": "curiouschests:block/sculk_sentinel_chest"
+    "particle": "curiouschests:entity/chest/sculk_sentinel"
   },
   "display": {
     "thirdperson_righthand": {
