@@ -87,18 +87,22 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         @Override
         protected void onOpen(Level level, BlockPos pos, BlockState state) {
             if (SpecialChestBlockEntity.this.kind() == ChestKind.BOTTOMLESS) {
+                playChestSound(level, pos, SoundEvents.CHEST_OPEN);
                 playCompressionPistonSound(level, pos, true);
             } else {
                 playChestSound(level, pos, SoundEvents.CHEST_OPEN);
+                playChestAccent(level, pos, SpecialChestBlockEntity.this.kind(), true);
             }
         }
 
         @Override
         protected void onClose(Level level, BlockPos pos, BlockState state) {
             if (SpecialChestBlockEntity.this.kind() == ChestKind.BOTTOMLESS) {
+                playChestSound(level, pos, SoundEvents.CHEST_CLOSE);
                 playCompressionPistonSound(level, pos, false);
             } else {
                 playChestSound(level, pos, SoundEvents.CHEST_CLOSE);
+                playChestAccent(level, pos, SpecialChestBlockEntity.this.kind(), false);
             }
         }
 
@@ -349,7 +353,71 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         float pitch = extending
                 ? level.random.nextFloat() * 0.25F + 0.60F
                 : level.random.nextFloat() * 0.15F + 0.60F;
-        level.playSound(null, pos, sound, SoundSource.BLOCKS, 0.5F, pitch);
+        level.playSound(null, pos, sound, SoundSource.BLOCKS, 0.36F, pitch);
+    }
+
+    /**
+     * A deliberately quiet second layer over the normal chest open/close sound.
+     * These are vanilla sounds only: the chest should still read as a chest,
+     * while each variant gets a small bit of material / theme identity.
+     */
+    private static void playChestAccent(Level level, BlockPos pos, ChestKind kind, boolean opening) {
+        SoundEvent sound;
+        float volume;
+        float pitch;
+
+        switch (kind) {
+            case RESONANT -> {
+                sound = SoundEvents.AMETHYST_BLOCK_CHIME;
+                volume = opening ? 1.325F : 0.806F;
+                pitch = opening ? 1.08F : 0.84F;
+            }
+            case SCULK_SENTINEL -> {
+                // Already tuned and intentionally left unchanged.
+                sound = SoundEvents.SCULK_CLICKING;
+                volume = 0.15F;
+                pitch = opening ? 1.12F : 0.82F;
+            }
+            case ENDER_DISPATCH -> {
+                sound = SoundEvents.ENDERMAN_TELEPORT;
+                volume = opening ? 0.192F : 0.10F;
+                pitch = opening ? 1.55F : 0.82F;
+            }
+            case INFERNAL -> {
+                sound = SoundEvents.BLAZE_SHOOT;
+                volume = opening ? 0.116F : 0.098F;
+                pitch = opening ? 1.18F : 0.82F;
+            }
+            case BUILDERS -> {
+                // Builder's deliberately keeps only the normal chest open/close sound.
+                return;
+            }
+            case COLLECTORS -> {
+                sound = SoundEvents.BUNDLE_INSERT;
+                volume = opening ? 0.63F : 0.375F;
+                pitch = opening ? 1.02F : 0.80F;
+            }
+            case ARCHIVIST -> {
+                sound = SoundEvents.BOOK_PAGE_TURN;
+                volume = opening ? 0.372F : 0.21F;
+                pitch = opening ? 1.04F : 0.82F;
+            }
+            case WITCH -> {
+                sound = SoundEvents.BREWING_STAND_BREW;
+                volume = opening ? 0.266F : 0.11F;
+                pitch = opening ? 1.08F : 0.84F;
+            }
+            case BOTTOMLESS -> {
+                return;
+            }
+            default -> {
+                return;
+            }
+        }
+
+        // Keep the accent deterministic: open is the recognizable higher note,
+        // close is the lower companion note.
+        level.playSound(null, pos, sound, SoundSource.BLOCKS, volume, pitch);
     }
 
     public IItemHandler getItemHandler() {
