@@ -15,7 +15,7 @@ public final class ModCreativeTabs {
             "curiouschests",
             () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.curiouschests"))
-                    .icon(() -> ModItems.BOTTOMLESS_CHEST_ITEM.get().getDefaultInstance())
+                    .icon(() -> ModItems.BUILDERS_CHEST_ITEM.get().getDefaultInstance())
                     .displayItems((parameters, output) ->
                             ModItems.ITEMS.getEntries().forEach(item -> output.accept(item.get())))
                     .build()

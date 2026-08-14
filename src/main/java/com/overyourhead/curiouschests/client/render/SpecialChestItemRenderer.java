@@ -22,6 +22,7 @@ import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.EnchantTableRenderer;
 import net.minecraft.client.renderer.entity.ItemRenderer;
@@ -139,7 +140,8 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
                 renderCustomModel(poseStack, () ->
                         sculkSentinelModel.render(poseStack, sculkConsumer, 0.0F, packedLight, packedOverlay));
             }
-            case RESONANT -> renderResonant(poseStack, bufferSource, consumer, texture, packedLight, packedOverlay);
+            case RESONANT -> renderResonant(
+                    poseStack, bufferSource, consumer, texture, packedLight, packedOverlay, displayContext);
             case WITCH -> renderWitch(poseStack, bufferSource, consumer, packedLight, packedOverlay);
             case ARCHIVIST -> {
                 renderVanillaChest(poseStack, consumer, packedLight, packedOverlay);
@@ -183,7 +185,8 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
             VertexConsumer bodyConsumer,
             ResourceLocation texture,
             int packedLight,
-            int packedOverlay
+            int packedOverlay,
+            ItemDisplayContext displayContext
     ) {
         poseStack.pushPose();
         poseStack.translate(0.5F, 1.5F, 0.5F);
@@ -191,10 +194,19 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
         poseStack.scale(-1.0F, -1.0F, 1.0F);
 
         resonantModel.renderMain(poseStack, bodyConsumer, 0.0F, packedLight, packedOverlay);
+        boolean guiCrystals = displayContext == ItemDisplayContext.GUI;
         VertexConsumer crystalConsumer = new ResonantCrystalVertexConsumer(
-                bufferSource.getBuffer(RenderType.entityCutoutNoCull(texture))
+                bufferSource.getBuffer(RenderType.entityCutoutNoCull(texture)),
+                guiCrystals ? -1.0F : 1.0F
         );
-        resonantModel.renderCrystals(poseStack, crystalConsumer, 0.0F, packedLight, packedOverlay);
+        // The crossed zero-thickness crystal cards already use a fixed neutral normal.
+        // In GUI lighting that still leaves them noticeably darker than the authored
+        // Blockbench look, so only the inventory/GUI crystal pass receives full light.
+        // World rendering and held/dropped item lighting remain unchanged.
+        int crystalLight = guiCrystals
+                ? LightTexture.FULL_BRIGHT
+                : packedLight;
+        resonantModel.renderCrystals(poseStack, crystalConsumer, 0.0F, crystalLight, packedOverlay);
         poseStack.popPose();
     }
 
@@ -278,7 +290,10 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
         poseStack.pushPose();
         // Same position language as the in-world Archivist, but static for an item icon.
         poseStack.translate(0.5F, 1.03F, 0.5F);
-        poseStack.mulPose(Axis.YP.rotationDegrees(15.0F));
+        // The vanilla enchanting-table BookModel has its own local orientation,
+        // independent from the chest item. Turn it a quarter-turn so the open book
+        // runs along the same visual axis as the Archivist chest in item displays.
+        poseStack.mulPose(Axis.YP.rotationDegrees(285.0F));
         poseStack.mulPose(Axis.ZP.rotationDegrees(80.0F));
         poseStack.scale(0.92F, 0.92F, 0.92F);
 
@@ -317,9 +332,11 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
 
     private static final class ResonantCrystalVertexConsumer implements VertexConsumer {
         private final VertexConsumer delegate;
+        private final float normalY;
 
-        private ResonantCrystalVertexConsumer(VertexConsumer delegate) {
+        private ResonantCrystalVertexConsumer(VertexConsumer delegate, float normalY) {
             this.delegate = delegate;
+            this.normalY = normalY;
         }
 
         @Override
@@ -354,7 +371,7 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
 
         @Override
         public VertexConsumer setNormal(float x, float y, float z) {
-            delegate.setNormal(0.0F, 1.0F, 0.0F);
+            delegate.setNormal(0.0F, normalY, 0.0F);
             return this;
         }
     }

@@ -1,6 +1,7 @@
 package com.overyourhead.curiouschests.common.item;
 
 import com.overyourhead.curiouschests.core.ModDataComponents;
+import com.overyourhead.curiouschests.common.logic.ResonanceNames;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
@@ -51,8 +52,8 @@ public final class ResonanceCrystalItem extends Item {
             tooltip.add(Component.translatable("tooltip.curiouschests.resonance_crystal.dormant")
                     .withStyle(ChatFormatting.GRAY));
         } else {
-            String shortId = target.toString().substring(0, 8).toUpperCase();
-            tooltip.add(Component.translatable("tooltip.curiouschests.resonance_crystal.attuned", shortId)
+            String resonanceName = ResonanceNames.forNode(target);
+            tooltip.add(Component.translatable("tooltip.curiouschests.resonance_crystal.attuned", resonanceName)
                     .withStyle(ChatFormatting.LIGHT_PURPLE));
         }
         super.appendHoverText(stack, context, tooltip, flag);

@@ -368,8 +368,8 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
 
         switch (kind) {
             case RESONANT -> {
-                sound = SoundEvents.AMETHYST_BLOCK_CHIME;
-                volume = opening ? 1.325F : 0.806F;
+                sound = SoundEvents.LARGE_AMETHYST_BUD_BREAK;
+                volume = opening ? 0.30F : 0.2F;
                 pitch = opening ? 1.08F : 0.84F;
             }
             case SCULK_SENTINEL -> {
