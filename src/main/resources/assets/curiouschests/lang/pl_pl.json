@@ -26,6 +26,7 @@
   "tooltip.curiouschests.collectors.lore_1": "Korzenie pod nią słyszą każdy upuszczony drobiazg.",
   "tooltip.curiouschests.collectors.lore_2": "Nic w pobliżu nie pozostaje zapomniane na długo.",
   "tooltip.curiouschests.collectors.ability": "Przyciąga upuszczone przedmioty w promieniu 8 bloków.",
+  "tooltip.curiouschests.collectors.output": "Automatycznie przekazuje zebrane przedmioty do pojemnika poniżej.",
   "screen.curiouschests.infernal_inputs": "Przedmioty do przetopienia",
   "screen.curiouschests.infernal_outputs": "Gotowe przedmioty",
   "block.curiouschests.sculk_sentinel_chest": "Skrzynia Strażnika Sculku",

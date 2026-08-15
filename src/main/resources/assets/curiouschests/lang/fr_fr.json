@@ -26,6 +26,7 @@
   "tooltip.curiouschests.collectors.lore_1": "Les racines sous lui entendent chaque objet tombé.",
   "tooltip.curiouschests.collectors.lore_2": "Rien à proximité ne reste oublié bien longtemps.",
   "tooltip.curiouschests.collectors.ability": "Attire les objets au sol dans un rayon de 8 blocs.",
+  "tooltip.curiouschests.collectors.output": "Transfère automatiquement les objets ramassés dans le conteneur situé en dessous.",
   "screen.curiouschests.infernal_inputs": "Objets à cuire",
   "screen.curiouschests.infernal_outputs": "Objets terminés",
   "block.curiouschests.sculk_sentinel_chest": "Coffre sentinelle de sculk",

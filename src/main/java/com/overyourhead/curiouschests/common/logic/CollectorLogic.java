@@ -2,18 +2,23 @@ package com.overyourhead.curiouschests.common.logic;
 
 import com.overyourhead.curiouschests.common.chest.ChestRules;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Container;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.items.IItemHandler;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,6 +27,7 @@ import java.util.UUID;
 public final class CollectorLogic {
     public static final int RADIUS = 8;
     public static final int TICK_INTERVAL = 1;
+    private static final int OUTPUT_INTERVAL_TICKS = 8;
 
     /*
      * Keep the same target speeds as v19, but steer toward them with a small
@@ -82,6 +88,16 @@ public final class CollectorLogic {
         );
         AABB area = new AABB(origin).inflate(RADIUS);
         boolean changed = false;
+
+        // Hopper-style lower output: Collector never extracts from another inventory.
+        // It only pushes one item from its own storage into the block directly below,
+        // once every eight ticks. Redstone power pauses this output without disabling
+        // the Collector's normal attraction mechanic.
+        if (level.getGameTime() % OUTPUT_INTERVAL_TICKS == 0L
+                && !level.hasNeighborSignal(origin)
+                && pushOneDown(level, origin, target)) {
+            changed = true;
+        }
 
         for (ItemEntity itemEntity : level.getEntitiesOfClass(
                 ItemEntity.class,
@@ -157,6 +173,67 @@ public final class CollectorLogic {
         }
 
         return changed;
+    }
+
+    private static boolean pushOneDown(ServerLevel level, BlockPos origin, Container source) {
+        BlockPos below = origin.below();
+        BlockState belowState = level.getBlockState(below);
+        BlockEntity belowEntity = level.getBlockEntity(below);
+
+        // Insert from the target's top face, exactly as a downward-facing hopper would.
+        // Prefer the sided capability so modded inventories can enforce their own rules;
+        // fall back to an unsided handler only when the block exposes no top-side view.
+        IItemHandler target = level.getCapability(
+                Capabilities.ItemHandler.BLOCK,
+                below,
+                belowState,
+                belowEntity,
+                Direction.UP
+        );
+        if (target == null) {
+            target = level.getCapability(
+                    Capabilities.ItemHandler.BLOCK,
+                    below,
+                    belowState,
+                    belowEntity,
+                    null
+            );
+        }
+        if (target == null) return false;
+
+        for (int sourceSlot = 0; sourceSlot < source.getContainerSize(); sourceSlot++) {
+            ItemStack stored = source.getItem(sourceSlot);
+            if (stored.isEmpty()) continue;
+
+            ItemStack moving = stored.copyWithCount(1);
+            if (!insertOne(target, moving)) continue;
+
+            stored.shrink(1);
+            if (stored.isEmpty()) {
+                source.setItem(sourceSlot, ItemStack.EMPTY);
+            } else {
+                source.setItem(sourceSlot, stored);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean insertOne(IItemHandler target, ItemStack moving) {
+        // Top off an existing matching stack first. This preserves Compression's
+        // extended stacks (e.g. 69 -> 70) instead of opening a fresh slot.
+        for (int slot = 0; slot < target.getSlots() && !moving.isEmpty(); slot++) {
+            ItemStack present = target.getStackInSlot(slot);
+            if (present.isEmpty() || !ItemStack.isSameItemSameComponents(present, moving)) continue;
+            moving = target.insertItem(slot, moving, false);
+        }
+
+        for (int slot = 0; slot < target.getSlots() && !moving.isEmpty(); slot++) {
+            ItemStack present = target.getStackInSlot(slot);
+            if (!present.isEmpty() && ItemStack.isSameItemSameComponents(present, moving)) continue;
+            moving = target.insertItem(slot, moving, false);
+        }
+        return moving.isEmpty();
     }
 
     private static boolean claimForCollector(

@@ -26,6 +26,7 @@
   "tooltip.curiouschests.collectors.lore_1": "その下の根は、落ちた小物すべての音を聞き取る。",
   "tooltip.curiouschests.collectors.lore_2": "近くの物は長く忘れ去られない。",
   "tooltip.curiouschests.collectors.ability": "8ブロック以内のドロップアイテムを引き寄せる。",
+  "tooltip.curiouschests.collectors.output": "集めたアイテムを真下のコンテナへ自動的に送ります。",
   "screen.curiouschests.infernal_inputs": "製錬するアイテム",
   "screen.curiouschests.infernal_outputs": "完成品",
   "block.curiouschests.sculk_sentinel_chest": "スカルクセンチネルチェスト",

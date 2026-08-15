@@ -26,6 +26,7 @@
   "tooltip.curiouschests.collectors.lore_1": "它下方的根系能听见每一件落地的物品。",
   "tooltip.curiouschests.collectors.lore_2": "附近的东西不会被遗忘太久。",
   "tooltip.curiouschests.collectors.ability": "吸引8格范围内的掉落物。",
+  "tooltip.curiouschests.collectors.output": "自动将收集到的物品传入下方的容器。",
   "screen.curiouschests.infernal_inputs": "熔炼输入",
   "screen.curiouschests.infernal_outputs": "成品",
   "block.curiouschests.sculk_sentinel_chest": "幽匿哨兵箱",

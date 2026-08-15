@@ -26,6 +26,7 @@
   "tooltip.curiouschests.collectors.lore_1": "Roots beneath it hear every fallen trinket.",
   "tooltip.curiouschests.collectors.lore_2": "Nothing nearby remains forgotten for long.",
   "tooltip.curiouschests.collectors.ability": "Pulls dropped items from within 8 blocks.",
+  "tooltip.curiouschests.collectors.output": "Automatically transfers collected items into the container below.",
   "screen.curiouschests.infernal_inputs": "Smelting inputs",
   "screen.curiouschests.infernal_outputs": "Finished items",
   "block.curiouschests.sculk_sentinel_chest": "Sculk Sentinel Chest",

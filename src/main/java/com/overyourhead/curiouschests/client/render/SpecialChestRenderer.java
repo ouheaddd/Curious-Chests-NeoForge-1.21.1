@@ -21,6 +21,7 @@ import net.minecraft.client.model.BookModel;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
@@ -372,9 +373,12 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
         poseStack.scale(-1.0F, -1.0F, 1.0F);
 
-        // Keep the working v2 body exactly as-is. The crystal children are hidden only
-        // for this pass so they are not drawn twice.
-        resonantModel.renderMain(poseStack, consumer, openness, packedLight, packedOverlay);
+        // Resonant crystals already match the authored Blockbench look closely. The
+        // remaining mismatch is the chest body reading too dark under normal world
+        // lighting, so give only the body a gentle minimum light floor instead of
+        // making it emissive/fullbright.
+        int bodyLight = boostedBodyLight(packedLight);
+        resonantModel.renderMain(poseStack, consumer, openness, bodyLight, packedOverlay);
 
         // Draw the exact same crystal geometry with its parent transforms intact, but
         // fold all face normals to one neutral upward normal. This removes the harsh
@@ -385,6 +389,12 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         resonantModel.renderCrystals(poseStack, crystalConsumer, openness, packedLight, packedOverlay);
 
         poseStack.popPose();
+    }
+
+    private static int boostedBodyLight(int packedLight) {
+        int block = Math.max(LightTexture.block(packedLight), 10);
+        int sky = Math.max(LightTexture.sky(packedLight), 10);
+        return LightTexture.pack(block, sky);
     }
 
     private void renderWitch(

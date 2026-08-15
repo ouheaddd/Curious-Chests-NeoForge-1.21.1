@@ -26,6 +26,7 @@
   "tooltip.curiouschests.collectors.lore_1": "Las raíces bajo él oyen cada objeto que cae.",
   "tooltip.curiouschests.collectors.lore_2": "Nada cercano permanece olvidado durante mucho tiempo.",
   "tooltip.curiouschests.collectors.ability": "Atrae objetos tirados en un radio de 8 bloques.",
+  "tooltip.curiouschests.collectors.output": "Transfiere automáticamente los objetos recogidos al contenedor de debajo.",
   "screen.curiouschests.infernal_inputs": "Objetos para fundir",
   "screen.curiouschests.infernal_outputs": "Objetos terminados",
   "block.curiouschests.sculk_sentinel_chest": "Cofre centinela de sculk",

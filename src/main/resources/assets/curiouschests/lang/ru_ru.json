@@ -26,6 +26,7 @@
   "tooltip.curiouschests.collectors.lore_1": "Корни под ним слышат звон каждой упавшей вещи.",
   "tooltip.curiouschests.collectors.lore_2": "Рядом с ним ничто не остаётся забытым надолго.",
   "tooltip.curiouschests.collectors.ability": "Притягивает предметы в радиусе 8 блоков.",
+  "tooltip.curiouschests.collectors.output": "Автоматически передаёт собранные предметы в контейнер под собой.",
   "screen.curiouschests.infernal_inputs": "Вход для переплавки",
   "screen.curiouschests.infernal_outputs": "Готовые предметы",
   "block.curiouschests.sculk_sentinel_chest": "Скалковый сундук-часовой",

@@ -26,6 +26,7 @@
   "tooltip.curiouschests.collectors.lore_1": "Wurzeln unter ihr hören jedes fallengelassene Kleinod.",
   "tooltip.curiouschests.collectors.lore_2": "In ihrer Nähe bleibt nichts lange vergessen.",
   "tooltip.curiouschests.collectors.ability": "Zieht fallengelassene Gegenstände aus bis zu 8 Blöcken Entfernung an.",
+  "tooltip.curiouschests.collectors.output": "Überträgt gesammelte Gegenstände automatisch in den Behälter darunter.",
   "screen.curiouschests.infernal_inputs": "Schmelzeingänge",
   "screen.curiouschests.infernal_outputs": "Fertige Gegenstände",
   "block.curiouschests.sculk_sentinel_chest": "Sculk-Wächtertruhe",

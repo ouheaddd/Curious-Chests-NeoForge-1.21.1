@@ -193,7 +193,8 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
         poseStack.scale(-1.0F, -1.0F, 1.0F);
 
-        resonantModel.renderMain(poseStack, bodyConsumer, 0.0F, packedLight, packedOverlay);
+        int bodyLight = boostedBodyLight(packedLight);
+        resonantModel.renderMain(poseStack, bodyConsumer, 0.0F, bodyLight, packedOverlay);
         boolean guiCrystals = displayContext == ItemDisplayContext.GUI;
         VertexConsumer crystalConsumer = new ResonantCrystalVertexConsumer(
                 bufferSource.getBuffer(RenderType.entityCutoutNoCull(texture)),
@@ -208,6 +209,12 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
                 : packedLight;
         resonantModel.renderCrystals(poseStack, crystalConsumer, 0.0F, crystalLight, packedOverlay);
         poseStack.popPose();
+    }
+
+    private static int boostedBodyLight(int packedLight) {
+        int block = Math.max(LightTexture.block(packedLight), 10);
+        int sky = Math.max(LightTexture.sky(packedLight), 10);
+        return LightTexture.pack(block, sky);
     }
 
     private void renderWitch(

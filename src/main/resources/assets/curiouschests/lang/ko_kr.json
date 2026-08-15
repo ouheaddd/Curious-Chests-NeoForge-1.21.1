@@ -26,6 +26,7 @@
   "tooltip.curiouschests.collectors.lore_1": "아래의 뿌리는 떨어진 모든 물건의 소리를 듣습니다.",
   "tooltip.curiouschests.collectors.lore_2": "주변의 물건은 오래 잊히지 않습니다.",
   "tooltip.curiouschests.collectors.ability": "8블록 이내의 떨어진 아이템을 끌어당깁니다.",
+  "tooltip.curiouschests.collectors.output": "수집한 아이템을 바로 아래의 보관함으로 자동 전송합니다.",
   "screen.curiouschests.infernal_inputs": "제련 입력",
   "screen.curiouschests.infernal_outputs": "완성된 아이템",
   "block.curiouschests.sculk_sentinel_chest": "스컬크 감시자 상자",

@@ -26,6 +26,7 @@
   "tooltip.curiouschests.collectors.lore_1": "Коріння під нею чує кожну загублену дрібничку.",
   "tooltip.curiouschests.collectors.lore_2": "Поруч із нею ніщо не лишається забутим надовго.",
   "tooltip.curiouschests.collectors.ability": "Притягує викинуті предмети в радіусі 8 блоків.",
+  "tooltip.curiouschests.collectors.output": "Автоматично передає зібрані предмети до контейнера під собою.",
   "screen.curiouschests.infernal_inputs": "Предмети для переплавлення",
   "screen.curiouschests.infernal_outputs": "Готові предмети",
   "block.curiouschests.sculk_sentinel_chest": "Скалкова скриня-вартовий",

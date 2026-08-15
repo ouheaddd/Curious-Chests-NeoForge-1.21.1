@@ -26,6 +26,7 @@
   "tooltip.curiouschests.collectors.lore_1": "As raízes abaixo dele ouvem cada item caído.",
   "tooltip.curiouschests.collectors.lore_2": "Nada por perto fica esquecido por muito tempo.",
   "tooltip.curiouschests.collectors.ability": "Atrai itens no chão em um raio de 8 blocos.",
+  "tooltip.curiouschests.collectors.output": "Transfere automaticamente os itens coletados para o recipiente abaixo.",
   "screen.curiouschests.infernal_inputs": "Entradas para fundição",
   "screen.curiouschests.infernal_outputs": "Itens prontos",
   "block.curiouschests.sculk_sentinel_chest": "Baú Sentinela de Sculk",
