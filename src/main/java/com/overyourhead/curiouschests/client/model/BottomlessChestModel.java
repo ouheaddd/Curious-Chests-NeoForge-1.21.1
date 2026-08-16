@@ -13,12 +13,10 @@ import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.client.model.geom.builders.PartDefinition;
 import net.minecraft.resources.ResourceLocation;
 
-/** Compression Chest model authored as the internal bottomless_chest asset. */
+/** Storage Chest model. The technical registry/model id remains bottomless_chest. */
 public final class BottomlessChestModel {
     private static final float CLOSED_X_ROT = (float) Math.PI;
-    private static final float CLOSED_KNOB_Y = 15.0F;
-    private static final float CLOSED_LID_Y = 12.5F;
-    private static final float PRESS_TRAVEL = 4.0F;
+    private static final float MAX_LID_ANGLE = (float) (Math.PI / 2.0);
 
     public static final ModelLayerLocation LAYER_LOCATION = new ModelLayerLocation(
             ResourceLocation.fromNamespaceAndPath(CuriousChestsMod.MOD_ID, "bottomless_chest"),
@@ -42,32 +40,77 @@ public final class BottomlessChestModel {
         root.addOrReplaceChild(
                 "knob",
                 CubeListBuilder.create()
-                        .texOffs(6, 42)
-                        .addBox(-1.0F, -1.0F, -0.5F, 2.0F, 4.0F, 1.0F, new CubeDeformation(0.0F)),
-                PartPose.offsetAndRotation(0.0F, CLOSED_KNOB_Y, -7.5F, CLOSED_X_ROT, 0.0F, 0.0F)
+                        .texOffs(48, 53)
+                        .addBox(7.0F, -2.0F, 14.0F, 2.0F, 4.0F, 1.0F, new CubeDeformation(0.0F)),
+                PartPose.offsetAndRotation(-8.0F, 15.0F, 7.0F, CLOSED_X_ROT, 0.0F, 0.0F)
         );
 
         root.addOrReplaceChild(
                 "lid",
                 CubeListBuilder.create()
                         .texOffs(0, 24)
-                        .addBox(-7.0F, -1.5F, -7.0F, 14.0F, 4.0F, 14.0F, new CubeDeformation(0.0F)),
-                PartPose.offsetAndRotation(0.0F, CLOSED_LID_Y, 0.0F, CLOSED_X_ROT, 0.0F, 0.0F)
+                        .addBox(1.0F, 0.0F, 0.0F, 14.0F, 5.0F, 14.0F, new CubeDeformation(0.0F)),
+                PartPose.offsetAndRotation(-8.0F, 15.0F, 7.0F, CLOSED_X_ROT, 0.0F, 0.0F)
         );
 
-        root.addOrReplaceChild(
+        PartDefinition base = root.addOrReplaceChild(
                 "base",
                 CubeListBuilder.create()
                         .texOffs(0, 0)
-                        .addBox(-7.0F, -5.0F, -7.0F, 14.0F, 10.0F, 14.0F, new CubeDeformation(0.0F))
-                        .texOffs(0, 42)
-                        .addBox(-8.0F, -5.0F, -1.0F, 1.0F, 19.0F, 2.0F, new CubeDeformation(0.0F))
-                        .texOffs(0, 42)
-                        .addBox(7.0F, -5.0F, -1.0F, 1.0F, 19.0F, 2.0F, new CubeDeformation(0.0F)),
-                PartPose.offsetAndRotation(0.0F, 19.0F, 0.0F, CLOSED_X_ROT, 0.0F, 0.0F)
+                        .addBox(1.0F, 0.0F, 1.0F, 14.0F, 10.0F, 14.0F, new CubeDeformation(0.0F)),
+                PartPose.offsetAndRotation(-8.0F, 24.0F, 8.0F, CLOSED_X_ROT, 0.0F, 0.0F)
         );
 
-        return LayerDefinition.create(meshDefinition, 64, 64);
+        base.addOrReplaceChild(
+                "frame",
+                CubeListBuilder.create()
+                        .texOffs(54, 53).addBox(-5.0F, -1.0F, -0.55F, 1.0F, 6.0F, 1.0F, new CubeDeformation(0.0F))
+                        .texOffs(56, 0).addBox(4.0F, -1.0F, -0.55F, 1.0F, 6.0F, 1.0F, new CubeDeformation(0.0F))
+                        .texOffs(18, 43).addBox(-5.0F, -2.0F, -0.55F, 10.0F, 1.0F, 1.0F, new CubeDeformation(0.0F))
+                        .texOffs(40, 43).addBox(-5.0F, 5.0F, -0.55F, 10.0F, 1.0F, 1.0F, new CubeDeformation(0.0F))
+                        .texOffs(0, 43).addBox(-4.0F, -1.0F, -0.95F, 8.0F, 6.0F, 1.0F, new CubeDeformation(0.0F)),
+                PartPose.offset(8.0F, 3.0F, 15.05F)
+        );
+
+        PartDefinition bone = base.addOrReplaceChild(
+                "bone",
+                CubeListBuilder.create(),
+                PartPose.offsetAndRotation(15.0F, 10.0F, 1.0F, CLOSED_X_ROT, 0.0F, 0.0F)
+        );
+
+        bone.addOrReplaceChild(
+                "group4",
+                CubeListBuilder.create()
+                        .texOffs(40, 53).addBox(-1.0F, -2.0F, -1.0F, 2.0F, 12.0F, 2.0F, new CubeDeformation(0.0F))
+                        .texOffs(50, 45).addBox(-2.0F, -6.0F, -2.0F, 4.0F, 4.0F, 4.0F, new CubeDeformation(0.0F)),
+                PartPose.offset(0.0F, 0.0F, 0.0F)
+        );
+
+        bone.addOrReplaceChild(
+                "group3",
+                CubeListBuilder.create()
+                        .texOffs(32, 53).addBox(-1.0F, -2.0F, -1.0F, 2.0F, 12.0F, 2.0F, new CubeDeformation(0.0F))
+                        .texOffs(0, 50).addBox(-2.0F, -6.0F, -2.0F, 4.0F, 4.0F, 4.0F, new CubeDeformation(0.0F)),
+                PartPose.offset(0.0F, 0.0F, -14.0F)
+        );
+
+        bone.addOrReplaceChild(
+                "group",
+                CubeListBuilder.create()
+                        .texOffs(16, 53).addBox(-1.0F, -2.0F, -1.0F, 2.0F, 12.0F, 2.0F, new CubeDeformation(0.0F))
+                        .texOffs(18, 45).addBox(-2.0F, -6.0F, -2.0F, 4.0F, 4.0F, 4.0F, new CubeDeformation(0.0F)),
+                PartPose.offset(-14.0F, 0.0F, 0.0F)
+        );
+
+        bone.addOrReplaceChild(
+                "group2",
+                CubeListBuilder.create()
+                        .texOffs(24, 53).addBox(-1.0F, -2.0F, -1.0F, 2.0F, 12.0F, 2.0F, new CubeDeformation(0.0F))
+                        .texOffs(34, 45).addBox(-2.0F, -6.0F, -2.0F, 4.0F, 4.0F, 4.0F, new CubeDeformation(0.0F)),
+                PartPose.offset(-14.0F, 0.0F, -14.0F)
+        );
+
+        return LayerDefinition.create(meshDefinition, 128, 128);
     }
 
     public void render(
@@ -77,13 +120,9 @@ public final class BottomlessChestModel {
             int packedLight,
             int packedOverlay
     ) {
-        // Model-space Y is inverted by the standard custom-chest transform. Moving
-        // lid/knob 4 px toward negative model Y lifts the press plate 4 px in-world.
-        float lift = openness * PRESS_TRAVEL;
-        lid.xRot = CLOSED_X_ROT;
-        knob.xRot = CLOSED_X_ROT;
-        lid.y = CLOSED_LID_Y - lift;
-        knob.y = CLOSED_KNOB_Y - lift;
+        float lidRotation = CLOSED_X_ROT - openness * MAX_LID_ANGLE;
+        lid.xRot = lidRotation;
+        knob.xRot = lidRotation;
 
         knob.render(poseStack, consumer, packedLight, packedOverlay);
         lid.render(poseStack, consumer, packedLight, packedOverlay);

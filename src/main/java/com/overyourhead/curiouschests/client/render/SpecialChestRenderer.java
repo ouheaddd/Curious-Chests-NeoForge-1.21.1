@@ -126,6 +126,7 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityCutoutNoCull(texture));
         if (chest.kind() == ChestKind.BOTTOMLESS) {
             renderBottomless(poseStack, consumer, openness, packedLight, packedOverlay);
+            renderStorageDisplayItem(chest, poseStack, bufferSource, packedLight, packedOverlay);
         } else if (chest.kind() == ChestKind.BUILDERS) {
             renderBuilders(poseStack, consumer, openness, packedLight, packedOverlay);
         } else if (chest.kind() == ChestKind.COLLECTORS) {
@@ -256,6 +257,36 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         while (delta >= Math.PI) delta -= (float) (Math.PI * 2.0D);
         while (delta < -Math.PI) delta += (float) (Math.PI * 2.0D);
         return from + partialTick * delta;
+    }
+
+    private void renderStorageDisplayItem(
+            SpecialChestBlockEntity chest,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            int packedLight,
+            int packedOverlay
+    ) {
+        ItemStack displayed = chest.getStorageDisplayItem();
+        if (displayed.isEmpty()) return;
+
+        poseStack.pushPose();
+        // The authored frame is centered on the lower front panel. This transform is
+        // in block-local space after the chest FACING rotation, so it follows the
+        // front of the Storage Chest automatically.
+        poseStack.translate(0.5F, 0.3125F, 0.965F);
+        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
+        poseStack.scale(0.30F, 0.30F, 0.30F);
+        itemRenderer.renderStatic(
+                displayed,
+                ItemDisplayContext.FIXED,
+                packedLight,
+                packedOverlay,
+                poseStack,
+                bufferSource,
+                chest.getLevel(),
+                (int) chest.getBlockPos().asLong()
+        );
+        poseStack.popPose();
     }
 
     private void renderBottomless(

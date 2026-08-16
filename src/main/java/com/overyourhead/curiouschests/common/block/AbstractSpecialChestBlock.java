@@ -13,7 +13,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -75,6 +77,27 @@ public abstract class AbstractSpecialChestBlock extends BaseEntityBlock {
     }
 
     @Override
+    protected ItemInteractionResult useItemOn(
+            ItemStack stack,
+            BlockState state,
+            Level level,
+            BlockPos pos,
+            Player player,
+            InteractionHand hand,
+            BlockHitResult hit
+    ) {
+        if (!player.isShiftKeyDown() || kind() != ChestKind.BOTTOMLESS) {
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        }
+
+        if (!level.isClientSide
+                && level.getBlockEntity(pos) instanceof SpecialChestBlockEntity chest) {
+            chest.setStorageDisplayItem(player, stack);
+        }
+        return ItemInteractionResult.sidedSuccess(level.isClientSide);
+    }
+
+    @Override
     protected InteractionResult useWithoutItem(
             BlockState state,
             Level level,
@@ -85,6 +108,11 @@ public abstract class AbstractSpecialChestBlock extends BaseEntityBlock {
         if (!level.isClientSide) {
             BlockEntity blockEntity = level.getBlockEntity(pos);
             if (blockEntity instanceof SpecialChestBlockEntity chest) {
+                if (chest.kind() == ChestKind.BOTTOMLESS && player.isShiftKeyDown()) {
+                    chest.removeStorageDisplayItem(player);
+                    return InteractionResult.CONSUME;
+                }
+
                 if (chest.kind() == ChestKind.ARCHIVIST
                         && player.isShiftKeyDown()
                         && player instanceof ServerPlayer serverPlayer) {

@@ -31,7 +31,7 @@ public final class ModBlocks {
                 .pushReaction(PushReaction.BLOCK);
     }
 
-    public static final DeferredBlock<BottomlessChestBlock> BOTTOMLESS_CHEST = BLOCKS.registerBlock("bottomless_chest", BottomlessChestBlock::new, props().sound(SoundType.STONE));
+    public static final DeferredBlock<BottomlessChestBlock> BOTTOMLESS_CHEST = BLOCKS.registerBlock("bottomless_chest", BottomlessChestBlock::new, props().sound(SoundType.WOOD));
     public static final DeferredBlock<InfernalChestBlock> INFERNAL_CHEST = BLOCKS.registerBlock("infernal_chest", InfernalChestBlock::new, props().sound(SoundType.NETHER_BRICKS).lightLevel(state -> 5));
     public static final DeferredBlock<EnderDispatchChestBlock> ENDER_DISPATCH_CHEST = BLOCKS.registerBlock("ender_dispatch_chest", EnderDispatchChestBlock::new, props().sound(SoundType.STONE));
     public static final DeferredBlock<BuildersChestBlock> BUILDERS_CHEST = BLOCKS.registerBlock("builders_chest", BuildersChestBlock::new, props());

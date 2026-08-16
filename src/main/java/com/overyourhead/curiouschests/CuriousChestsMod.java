@@ -1,6 +1,7 @@
 package com.overyourhead.curiouschests;
 
 import com.overyourhead.curiouschests.common.event.SentinelEvents;
+import com.overyourhead.curiouschests.common.event.StorageChestEvents;
 import com.overyourhead.curiouschests.core.ModBlockEntities;
 import com.overyourhead.curiouschests.core.ModBlocks;
 import com.overyourhead.curiouschests.core.ModCapabilities;
@@ -32,5 +33,6 @@ public final class CuriousChestsMod {
 
         NeoForge.EVENT_BUS.addListener(SentinelEvents::onBreakSpeed);
         NeoForge.EVENT_BUS.addListener(SentinelEvents::onBreak);
+        NeoForge.EVENT_BUS.addListener(StorageChestEvents::onRightClickBlock);
     }
 }

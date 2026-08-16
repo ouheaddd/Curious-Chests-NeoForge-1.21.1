@@ -71,6 +71,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     private static final int EVENT_SET_OPEN_COUNT = 1;
     private static final int EVENT_WITCH_BREW_BURST = 2;
     private static final String BOTTOMLESS_DEEP_FORMAT_TAG = "BottomlessDeepFormat";
+    private static final String STORAGE_DISPLAY_ITEM_TAG = "StorageDisplayItem";
     private static final String SENTINEL_OWNER_TAG = "SentinelOwner";
     private static final String SENTINEL_OWNER_NAME_TAG = "SentinelOwnerName";
     private static final String SENTINEL_LOG_TAG = "SentinelLog";
@@ -86,24 +87,14 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     private final ContainerOpenersCounter openersCounter = new ContainerOpenersCounter() {
         @Override
         protected void onOpen(Level level, BlockPos pos, BlockState state) {
-            if (SpecialChestBlockEntity.this.kind() == ChestKind.BOTTOMLESS) {
-                playChestSound(level, pos, SoundEvents.CHEST_OPEN);
-                playCompressionPistonSound(level, pos, true);
-            } else {
-                playChestSound(level, pos, SoundEvents.CHEST_OPEN);
-                playChestAccent(level, pos, SpecialChestBlockEntity.this.kind(), true);
-            }
+            playChestSound(level, pos, SoundEvents.CHEST_OPEN);
+            playChestAccent(level, pos, SpecialChestBlockEntity.this.kind(), true);
         }
 
         @Override
         protected void onClose(Level level, BlockPos pos, BlockState state) {
-            if (SpecialChestBlockEntity.this.kind() == ChestKind.BOTTOMLESS) {
-                playChestSound(level, pos, SoundEvents.CHEST_CLOSE);
-                playCompressionPistonSound(level, pos, false);
-            } else {
-                playChestSound(level, pos, SoundEvents.CHEST_CLOSE);
-                playChestAccent(level, pos, SpecialChestBlockEntity.this.kind(), false);
-            }
+            playChestSound(level, pos, SoundEvents.CHEST_CLOSE);
+            playChestAccent(level, pos, SpecialChestBlockEntity.this.kind(), false);
         }
 
         @Override
@@ -131,6 +122,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     private int dispatchPreviewTicks;
     private int dispatchPreviewSlot = -1;
     private ItemStack dispatchPreviewStack = ItemStack.EMPTY;
+    private ItemStack storageDisplayItem = ItemStack.EMPTY;
     private boolean dispatchInternalMutation;
     private boolean witchPotionCountInitialized;
     private int witchLastPotionCount;
@@ -150,7 +142,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     private float archivistBookTargetRot;
     private final InvWrapper fullItemHandler = new InvWrapper(this);
     /**
-     * Automation view for Compression/Bottomless storage. InvWrapper follows the
+     * Automation view for Storage/Bottomless storage. InvWrapper follows the
      * item's vanilla max stack size when merging, which would cap automated
      * inserts at 64 even though this chest intentionally stores up to 256 in one
      * visible slot. This handler keeps the chest's real per-slot rules.
@@ -348,14 +340,6 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         );
     }
 
-    private static void playCompressionPistonSound(Level level, BlockPos pos, boolean extending) {
-        SoundEvent sound = extending ? SoundEvents.PISTON_EXTEND : SoundEvents.PISTON_CONTRACT;
-        float pitch = extending
-                ? level.random.nextFloat() * 0.25F + 0.60F
-                : level.random.nextFloat() * 0.15F + 0.60F;
-        level.playSound(null, pos, sound, SoundSource.BLOCKS, 0.36F, pitch);
-    }
-
     /**
      * A deliberately quiet second layer over the normal chest open/close sound.
      * These are vanilla sounds only: the chest should still read as a chest,
@@ -418,6 +402,51 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         // Keep the accent deterministic: open is the recognizable higher note,
         // close is the lower companion note.
         level.playSound(null, pos, sound, SoundSource.BLOCKS, volume, pitch);
+    }
+
+    public ItemStack getStorageDisplayItem() {
+        return storageDisplayItem;
+    }
+
+    public boolean setStorageDisplayItem(Player player, ItemStack heldStack) {
+        if (kind() != ChestKind.BOTTOMLESS || heldStack.isEmpty()) return false;
+
+        ItemStack previous = storageDisplayItem;
+        ItemStack replacement = heldStack.copyWithCount(1);
+
+        if (!player.getAbilities().instabuild) {
+            heldStack.shrink(1);
+        }
+
+        storageDisplayItem = replacement;
+        if (!previous.isEmpty()) {
+            giveStorageDisplayItem(player, previous);
+        }
+        syncStorageDisplayItem();
+        return true;
+    }
+
+    public boolean removeStorageDisplayItem(Player player) {
+        if (kind() != ChestKind.BOTTOMLESS || storageDisplayItem.isEmpty()) return false;
+
+        ItemStack removed = storageDisplayItem;
+        storageDisplayItem = ItemStack.EMPTY;
+        giveStorageDisplayItem(player, removed);
+        syncStorageDisplayItem();
+        return true;
+    }
+
+    private static void giveStorageDisplayItem(Player player, ItemStack stack) {
+        if (!player.addItem(stack)) {
+            player.drop(stack, false);
+        }
+    }
+
+    private void syncStorageDisplayItem() {
+        setChanged();
+        if (level == null || level.isClientSide) return;
+        BlockState state = getBlockState();
+        level.sendBlockUpdated(worldPosition, state, state, Block.UPDATE_CLIENTS);
     }
 
     public IItemHandler getItemHandler() {
@@ -487,22 +516,34 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         }
     }
 
+    private void readStorageDisplayTag(CompoundTag tag, HolderLookup.Provider registries) {
+        storageDisplayItem = tag.contains(STORAGE_DISPLAY_ITEM_TAG, Tag.TAG_COMPOUND)
+                ? ItemStack.parseOptional(registries, tag.getCompound(STORAGE_DISPLAY_ITEM_TAG))
+                : ItemStack.EMPTY;
+    }
+
     @Override
     public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
-        if (kind() != ChestKind.ENDER_DISPATCH) {
-            return super.getUpdateTag(registries);
+        if (kind() == ChestKind.ENDER_DISPATCH) {
+            CompoundTag tag = new CompoundTag();
+            if (!dispatchPreviewStack.isEmpty()) {
+                tag.put(DISPATCH_PREVIEW_TAG, dispatchPreviewStack.save(registries));
+            }
+            return tag;
         }
-
-        CompoundTag tag = new CompoundTag();
-        if (!dispatchPreviewStack.isEmpty()) {
-            tag.put(DISPATCH_PREVIEW_TAG, dispatchPreviewStack.save(registries));
+        if (kind() == ChestKind.BOTTOMLESS) {
+            CompoundTag tag = new CompoundTag();
+            if (!storageDisplayItem.isEmpty()) {
+                tag.put(STORAGE_DISPLAY_ITEM_TAG, storageDisplayItem.save(registries));
+            }
+            return tag;
         }
-        return tag;
+        return super.getUpdateTag(registries);
     }
 
     @Override
     public Packet<ClientGamePacketListener> getUpdatePacket() {
-        if (kind() == ChestKind.ENDER_DISPATCH) {
+        if (kind() == ChestKind.ENDER_DISPATCH || kind() == ChestKind.BOTTOMLESS) {
             return ClientboundBlockEntityDataPacket.create(this);
         }
         return super.getUpdatePacket();
@@ -512,6 +553,10 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider registries) {
         if (kind() == ChestKind.ENDER_DISPATCH) {
             readDispatchPreviewTag(tag, registries);
+            return;
+        }
+        if (kind() == ChestKind.BOTTOMLESS) {
+            readStorageDisplayTag(tag, registries);
             return;
         }
         loadWithComponents(tag, registries);
@@ -525,6 +570,10 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     ) {
         if (kind() == ChestKind.ENDER_DISPATCH) {
             readDispatchPreviewTag(packet.getTag(), registries);
+            return;
+        }
+        if (kind() == ChestKind.BOTTOMLESS) {
+            readStorageDisplayTag(packet.getTag(), registries);
             return;
         }
         loadWithComponents(packet.getTag(), registries);
@@ -737,7 +786,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
 
     /**
      * Drops every real stored item into the world and clears the block inventory.
-     * Internal oversized stacks (Compression, Archivist, Witch) are split back into
+     * Internal oversized stacks (Storage, Archivist, Witch) are split back into
      * legal vanilla-sized ItemStacks before spawning, so no hidden container data is
      * needed on the dropped chest item.
      */
@@ -762,6 +811,17 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
                 remaining -= amount;
             }
             items.set(slot, ItemStack.EMPTY);
+        }
+
+        if (kind() == ChestKind.BOTTOMLESS && !storageDisplayItem.isEmpty()) {
+            Containers.dropItemStack(
+                    level,
+                    pos.getX() + 0.5D,
+                    pos.getY() + 0.5D,
+                    pos.getZ() + 0.5D,
+                    storageDisplayItem.copy()
+            );
+            storageDisplayItem = ItemStack.EMPTY;
         }
 
         resonanceReceivedSlots.clear();
@@ -942,6 +1002,9 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         if (kind() == ChestKind.BOTTOMLESS) {
             ContainerHelper.saveAllItems(tag, BottomlessStorage.splitForSerialization(items), registries);
             tag.putBoolean(BOTTOMLESS_DEEP_FORMAT_TAG, true);
+            if (!storageDisplayItem.isEmpty()) {
+                tag.put(STORAGE_DISPLAY_ITEM_TAG, storageDisplayItem.save(registries));
+            }
         } else {
             ContainerHelper.saveAllItems(tag, items, registries);
         }
@@ -990,6 +1053,11 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
             items = NonNullList.withSize(getContainerSize(), ItemStack.EMPTY);
             ContainerHelper.loadAllItems(tag, items, registries);
         }
+
+        storageDisplayItem = kind() == ChestKind.BOTTOMLESS
+                && tag.contains(STORAGE_DISPLAY_ITEM_TAG, Tag.TAG_COMPOUND)
+                ? ItemStack.parseOptional(registries, tag.getCompound(STORAGE_DISPLAY_ITEM_TAG))
+                : ItemStack.EMPTY;
 
         workTicker = tag.getInt("WorkTicker");
         dispatchCooldown = tag.contains("DispatchCooldown")
@@ -1082,6 +1150,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         super.removeComponentsFromTag(tag);
         tag.remove("Items");
         tag.remove(BOTTOMLESS_DEEP_FORMAT_TAG);
+        tag.remove(STORAGE_DISPLAY_ITEM_TAG);
         tag.remove(RESONANCE_NODE_TAG);
         tag.remove(RESONANCE_ATTUNEMENT_TAG);
         tag.remove(RESONANCE_TRANSFER_COOLDOWN_TAG);
