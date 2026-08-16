@@ -86,7 +86,9 @@ public abstract class AbstractSpecialChestBlock extends BaseEntityBlock {
             InteractionHand hand,
             BlockHitResult hit
     ) {
-        if (!player.isShiftKeyDown() || kind() != ChestKind.BOTTOMLESS) {
+        if (!player.isShiftKeyDown()
+                || kind() != ChestKind.BOTTOMLESS
+                || hit.getDirection() != state.getValue(FACING)) {
             return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
 
@@ -108,7 +110,9 @@ public abstract class AbstractSpecialChestBlock extends BaseEntityBlock {
         if (!level.isClientSide) {
             BlockEntity blockEntity = level.getBlockEntity(pos);
             if (blockEntity instanceof SpecialChestBlockEntity chest) {
-                if (chest.kind() == ChestKind.BOTTOMLESS && player.isShiftKeyDown()) {
+                if (chest.kind() == ChestKind.BOTTOMLESS
+                        && player.isShiftKeyDown()
+                        && hit.getDirection() == state.getValue(FACING)) {
                     chest.removeStorageDisplayItem(player);
                     return InteractionResult.CONSUME;
                 }
