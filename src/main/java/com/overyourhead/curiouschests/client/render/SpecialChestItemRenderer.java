@@ -50,7 +50,7 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
 
     private static final int SCULK_FRAME_COUNT = 10;
     private static final int SCULK_TICKS_PER_FRAME = 3;
-    private static final int WITCH_LIQUID_FRAME_COUNT = 32;
+    private static final int WITCH_LIQUID_FRAME_COUNT = 16;
     private static final int WITCH_LIQUID_TICKS_PER_FRAME = 4;
 
     private ModelPart bottom;

@@ -54,7 +54,7 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
     private static final int SCULK_SENTINEL_TICKS_PER_FRAME = 3;
     private static final ResourceLocation[] SCULK_SENTINEL_FRAMES = createSculkSentinelFrames();
 
-    private static final int WITCH_LIQUID_FRAME_COUNT = 32;
+    private static final int WITCH_LIQUID_FRAME_COUNT = 16;
     private static final int WITCH_LIQUID_TICKS_PER_FRAME = 4;
     private static final ResourceLocation[] WITCH_LIQUID_FRAMES = createWitchLiquidFrames();
 
