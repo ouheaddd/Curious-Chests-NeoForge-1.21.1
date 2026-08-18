@@ -169,6 +169,13 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
+        if (menu.kind() == ChestKind.BOTTOMLESS) {
+            int storageLabelColor = 0xE6D6A8;
+            graphics.drawString(font, title, titleLabelX, titleLabelY + 2, storageLabelColor, false);
+            graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY + 1, storageLabelColor, false);
+            return;
+        }
+
         graphics.drawString(font, title, titleLabelX, titleLabelY, 0x404040, false);
         graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0x404040, false);
     }
