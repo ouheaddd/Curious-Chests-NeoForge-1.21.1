@@ -170,14 +170,15 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
 
     private void addChestSlots() {
         if (kind == ChestKind.INFERNAL) {
+            final int infernalX = 10;
             for (int slot = InfernalLogic.INPUT_START; slot < InfernalLogic.INPUT_END; slot++) {
-                addChestSlot(slot, 8 + slot * 18, 18, true);
+                addChestSlot(slot, infernalX + slot * 18, 18, true);
             }
             for (int slot = InfernalLogic.OUTPUT_START; slot < InfernalLogic.OUTPUT_END; slot++) {
                 int outputIndex = slot - InfernalLogic.OUTPUT_START;
                 int column = outputIndex % 9;
                 int row = outputIndex / 9;
-                addChestSlot(slot, 8 + column * 18, 72 + row * 18, false);
+                addChestSlot(slot, infernalX + column * 18, 72 + row * 18, false);
             }
             return;
         }
@@ -331,8 +332,10 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
 
     private void addPlayerSlots(Inventory inventory) {
         int yBase;
+        int xBase = 8;
         if (kind == ChestKind.INFERNAL) {
             yBase = 130;
+            xBase = 10;
         } else if (kind == ChestKind.RESONANT) {
             yBase = 85;
         } else if (kind == ChestKind.ARCHIVIST || kind == ChestKind.WITCH) {
@@ -346,13 +349,13 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
                 addSlot(new Slot(
                         inventory,
                         column + row * 9 + 9,
-                        8 + column * 18,
+                        xBase + column * 18,
                         yBase + row * 18
                 ));
             }
         }
         for (int column = 0; column < 9; column++) {
-            addSlot(new Slot(inventory, column, 8 + column * 18, yBase + 58));
+            addSlot(new Slot(inventory, column, xBase + column * 18, yBase + 58));
         }
     }
 

@@ -176,6 +176,13 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
             return;
         }
 
+        if (menu.kind() == ChestKind.INFERNAL) {
+            int infernalLabelColor = 0xF2C078;
+            graphics.drawString(font, title, titleLabelX + 3, titleLabelY + 3, infernalLabelColor, false);
+            graphics.drawString(font, playerInventoryTitle, inventoryLabelX + 3, inventoryLabelY - 12, infernalLabelColor, false);
+            return;
+        }
+
         graphics.drawString(font, title, titleLabelX, titleLabelY, 0x404040, false);
         graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0x404040, false);
     }
