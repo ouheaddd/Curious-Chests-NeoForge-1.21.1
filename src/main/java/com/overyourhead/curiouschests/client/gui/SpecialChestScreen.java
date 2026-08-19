@@ -52,6 +52,8 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
     private static final int LOG_ROW_HEIGHT = 27;
     private static final int LOG_ENTRY_WIDTH = 160;
     private static final int LOG_ENTRY_HEIGHT = 25;
+    private static final int SENTINEL_LOG_WIDTH = 176;
+    private static final int SENTINEL_LOG_HEIGHT = 186;
     private static final double LOG_OVERLAY_Z = 500.0D;
 
     private static final ResourceLocation SENTINEL_BUTTON_TEXTURE = ResourceLocation.fromNamespaceAndPath(
@@ -169,17 +171,19 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
+        // These redesigned GUIs carry their visual identity in the texture itself.
+        // Do not draw the vanilla chest title or the player "Inventory" label over them.
+        if (menu.kind() == ChestKind.INFERNAL
+                || menu.kind() == ChestKind.ENDER_DISPATCH
+                || menu.kind() == ChestKind.RESONANT
+                || menu.kind() == ChestKind.SCULK_SENTINEL) {
+            return;
+        }
+
         if (menu.kind() == ChestKind.BOTTOMLESS) {
             int storageLabelColor = 0xE6D6A8;
             graphics.drawString(font, title, titleLabelX, titleLabelY + 2, storageLabelColor, false);
             graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY + 1, storageLabelColor, false);
-            return;
-        }
-
-        if (menu.kind() == ChestKind.INFERNAL) {
-            int infernalLabelColor = 0xF2C078;
-            graphics.drawString(font, title, titleLabelX + 3, titleLabelY + 3, infernalLabelColor, false);
-            graphics.drawString(font, playerInventoryTitle, inventoryLabelX + 3, inventoryLabelY - 12, infernalLabelColor, false);
             return;
         }
 
@@ -248,24 +252,27 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
     }
 
     private void renderSentinelLog(GuiGraphics graphics) {
-        // This texture is fully opaque across the visible 176 x 186 panel, so
-        // slots, items, labels and carried-stack decorations rendered by the
-        // container underneath cannot show through.
+        // The chest GUI is now 190 x 192, while the existing intrusion-log art is 176 x 186.
+        // Cover the whole resized container first, then center the old log panel inside it so
+        // hidden slots/items cannot bleed through the newly exposed border area.
+        int logLeft = sentinelLogLeft();
+        int logTop = sentinelLogTop();
+        graphics.fill(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight, 0xFF071311);
         graphics.blit(
                 SENTINEL_LOG_TEXTURE,
-                leftPos,
-                topPos,
+                logLeft,
+                logTop,
                 0,
                 0,
-                imageWidth,
-                imageHeight
+                SENTINEL_LOG_WIDTH,
+                SENTINEL_LOG_HEIGHT
         );
 
         graphics.drawCenteredString(
                 font,
                 Component.translatable("gui.curiouschests.sculk_sentinel.log_title"),
-                leftPos + imageWidth / 2,
-                topPos + 10,
+                logLeft + SENTINEL_LOG_WIDTH / 2,
+                logTop + 10,
                 0xD8E6E0
         );
 
@@ -273,16 +280,16 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
             graphics.drawCenteredString(
                     font,
                     Component.translatable("gui.curiouschests.sculk_sentinel.log_loading"),
-                    leftPos + imageWidth / 2,
-                    topPos + 87,
+                    logLeft + SENTINEL_LOG_WIDTH / 2,
+                    logTop + 87,
                     0x93AAA4
             );
         } else if (sentinelLogEntries.isEmpty()) {
             graphics.drawCenteredString(
                     font,
                     Component.translatable("gui.curiouschests.sculk_sentinel.log_empty"),
-                    leftPos + imageWidth / 2,
-                    topPos + 87,
+                    logLeft + SENTINEL_LOG_WIDTH / 2,
+                    logTop + 87,
                     0x93AAA4
             );
         } else {
@@ -292,9 +299,11 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
 
     private void renderSentinelLogEntries(GuiGraphics graphics) {
         int visible = Math.min(LOG_ROWS_VISIBLE, sentinelLogEntries.size());
+        int logLeft = sentinelLogLeft();
+        int logTop = sentinelLogTop();
         for (int index = 0; index < visible; index++) {
-            int y = topPos + LOG_FIRST_ROW_Y + index * LOG_ROW_HEIGHT;
-            renderSentinelLogEntry(graphics, sentinelLogEntries.get(index), leftPos + 8, y);
+            int y = logTop + LOG_FIRST_ROW_Y + index * LOG_ROW_HEIGHT;
+            renderSentinelLogEntry(graphics, sentinelLogEntries.get(index), logLeft + 8, y);
         }
     }
 
@@ -339,7 +348,7 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
 
         long seconds = Math.max(0L, (sentinelServerGameTime - entry.gameTime()) / 20L);
         Component ago = Component.translatable("gui.curiouschests.sculk_sentinel.seconds_ago", seconds);
-        int agoX = leftPos + imageWidth - 8 - font.width(ago);
+        int agoX = sentinelLogLeft() + SENTINEL_LOG_WIDTH - 8 - font.width(ago);
         graphics.drawString(font, ago, agoX, y + 12, 0x657D77, false);
     }
 
@@ -431,6 +440,14 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
 
     private String trim(String value, int width) {
         return font.plainSubstrByWidth(value, width);
+    }
+
+    private int sentinelLogLeft() {
+        return leftPos + (imageWidth - SENTINEL_LOG_WIDTH) / 2;
+    }
+
+    private int sentinelLogTop() {
+        return topPos + (imageHeight - SENTINEL_LOG_HEIGHT) / 2;
     }
 
     private int sentinelButtonX() {

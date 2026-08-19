@@ -46,6 +46,20 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
     private static final int BUILDERS_RESULT_X = 212;
     private static final int BUILDERS_RESULT_Y = 99;
 
+    // GUI slot tuning for the redesigned container textures.
+    // Change these values to nudge every normal slot for one chest without touching the PNG.
+    private static final int ENDER_DISPATCH_SLOT_OFFSET_X = 2;
+    private static final int ENDER_DISPATCH_SLOT_OFFSET_Y = 2;
+    private static final int SCULK_SENTINEL_SLOT_OFFSET_X = 2;
+    private static final int SCULK_SENTINEL_SLOT_OFFSET_Y = 2;
+    private static final int RESONANT_SLOT_OFFSET_X = 2;
+    private static final int RESONANT_SLOT_OFFSET_Y = 2;
+
+    // Resonance Crystal uses its own attached widget at the top-right, just like before.
+    // These coordinates are independent from the +2/+2 offset used by the normal Resonant slots.
+    private static final int RESONANT_CRYSTAL_SLOT_X = 183;
+    private static final int RESONANT_CRYSTAL_SLOT_Y = 18;
+
     public static SpecialChestMenu client(MenuType<SpecialChestMenu> type, int id, Inventory inventory, ChestKind kind) {
         return new SpecialChestMenu(
                 type,
@@ -187,9 +201,19 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
             for (int slot = 0; slot < ResonanceLogic.STORAGE_SLOTS; slot++) {
                 int column = slot % 9;
                 int row = slot / 9;
-                addChestSlot(slot, 8 + column * 18, 18 + row * 18, true);
+                addChestSlot(
+                        slot,
+                        8 + column * 18 + chestSlotOffsetX(),
+                        18 + row * 18 + chestSlotOffsetY(),
+                        true
+                );
             }
-            addSlot(new Slot(container, ResonanceLogic.CRYSTAL_SLOT, 183, 18) {
+            addSlot(new Slot(
+                    container,
+                    ResonanceLogic.CRYSTAL_SLOT,
+                    RESONANT_CRYSTAL_SLOT_X,
+                    RESONANT_CRYSTAL_SLOT_Y
+            ) {
                 @Override
                 public boolean mayPlace(ItemStack stack) {
                     return stack.is(ModItems.RESONANCE_CRYSTAL.get())
@@ -292,8 +316,31 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
         for (int slot = 0; slot < kind.slots(); slot++) {
             int column = slot % 9;
             int row = slot / 9;
-            addChestSlot(slot, 8 + column * 18, 18 + row * 18, true);
+            addChestSlot(
+                    slot,
+                    8 + column * 18 + chestSlotOffsetX(),
+                    18 + row * 18 + chestSlotOffsetY(),
+                    true
+            );
         }
+    }
+
+    private int chestSlotOffsetX() {
+        return switch (kind) {
+            case ENDER_DISPATCH -> ENDER_DISPATCH_SLOT_OFFSET_X;
+            case SCULK_SENTINEL -> SCULK_SENTINEL_SLOT_OFFSET_X;
+            case RESONANT -> RESONANT_SLOT_OFFSET_X;
+            default -> 0;
+        };
+    }
+
+    private int chestSlotOffsetY() {
+        return switch (kind) {
+            case ENDER_DISPATCH -> ENDER_DISPATCH_SLOT_OFFSET_Y;
+            case SCULK_SENTINEL -> SCULK_SENTINEL_SLOT_OFFSET_Y;
+            case RESONANT -> RESONANT_SLOT_OFFSET_Y;
+            default -> 0;
+        };
     }
 
     private void addChestSlot(int index, int x, int y, boolean allowPlacement) {
@@ -343,6 +390,9 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
         } else {
             yBase = 31 + kind.storageRows() * 18;
         }
+
+        xBase += chestSlotOffsetX();
+        yBase += chestSlotOffsetY();
 
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
