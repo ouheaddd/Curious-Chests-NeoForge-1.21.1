@@ -77,6 +77,11 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     private static final String SENTINEL_LOG_TAG = "SentinelLog";
     private static final String SENTINEL_ALARM_TAG = "SentinelAlarmTicks";
     private static final String SENTINEL_WARDEN_COOLDOWN_TAG = "SentinelWardenCooldown";
+    private static final String SENTINEL_GUARD_WARDEN_TAG = "SentinelGuardWarden";
+    private static final String SENTINEL_GUARD_INTRUDER_TAG = "SentinelGuardIntruder";
+    private static final String SENTINEL_GUARD_EXPIRES_TAG = "SentinelGuardExpires";
+    private static final String SENTINEL_GUARD_RETIRING_TAG = "SentinelGuardRetiring";
+    private static final String SENTINEL_GUARD_RETIRE_STARTED_TAG = "SentinelGuardRetireStarted";
     private static final String RESONANCE_NODE_TAG = "ResonanceNode";
     private static final String RESONANCE_ATTUNEMENT_TAG = "ResonanceAttunement";
     private static final String RESONANCE_TRANSFER_COOLDOWN_TAG = "ResonanceTransferCooldown";
@@ -262,6 +267,11 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     private final List<SentinelLogEntry> sentinelLog = new ArrayList<>();
     private int sentinelAlarmTicks;
     private int sentinelWardenCooldown;
+    private UUID sentinelGuardWardenId;
+    private UUID sentinelGuardIntruderId;
+    private long sentinelGuardExpiresAt;
+    private boolean sentinelGuardRetiring;
+    private long sentinelGuardRetireStartedAt;
 
     private UUID resonanceNodeId;
     private int resonanceAttunementTicks;
@@ -522,6 +532,17 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
                 : ItemStack.EMPTY;
     }
 
+    private void readSentinelClientTag(CompoundTag tag) {
+        sentinelOwner = tag.hasUUID(SENTINEL_OWNER_TAG) ? tag.getUUID(SENTINEL_OWNER_TAG) : null;
+        sentinelOwnerName = tag.getString(SENTINEL_OWNER_NAME_TAG);
+    }
+
+    private void syncSentinelClientData() {
+        if (level == null || level.isClientSide || kind() != ChestKind.SCULK_SENTINEL) return;
+        BlockState state = getBlockState();
+        level.sendBlockUpdated(worldPosition, state, state, Block.UPDATE_CLIENTS);
+    }
+
     @Override
     public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
         if (kind() == ChestKind.ENDER_DISPATCH) {
@@ -538,12 +559,20 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
             }
             return tag;
         }
+        if (kind() == ChestKind.SCULK_SENTINEL) {
+            CompoundTag tag = new CompoundTag();
+            if (sentinelOwner != null) tag.putUUID(SENTINEL_OWNER_TAG, sentinelOwner);
+            tag.putString(SENTINEL_OWNER_NAME_TAG, sentinelOwnerName);
+            return tag;
+        }
         return super.getUpdateTag(registries);
     }
 
     @Override
     public Packet<ClientGamePacketListener> getUpdatePacket() {
-        if (kind() == ChestKind.ENDER_DISPATCH || kind() == ChestKind.BOTTOMLESS) {
+        if (kind() == ChestKind.ENDER_DISPATCH
+                || kind() == ChestKind.BOTTOMLESS
+                || kind() == ChestKind.SCULK_SENTINEL) {
             return ClientboundBlockEntityDataPacket.create(this);
         }
         return super.getUpdatePacket();
@@ -557,6 +586,10 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         }
         if (kind() == ChestKind.BOTTOMLESS) {
             readStorageDisplayTag(tag, registries);
+            return;
+        }
+        if (kind() == ChestKind.SCULK_SENTINEL) {
+            readSentinelClientTag(tag);
             return;
         }
         loadWithComponents(tag, registries);
@@ -574,6 +607,10 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         }
         if (kind() == ChestKind.BOTTOMLESS) {
             readStorageDisplayTag(packet.getTag(), registries);
+            return;
+        }
+        if (kind() == ChestKind.SCULK_SENTINEL) {
+            readSentinelClientTag(packet.getTag());
             return;
         }
         loadWithComponents(packet.getTag(), registries);
@@ -925,7 +962,9 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         sentinelLog.clear();
         sentinelAlarmTicks = 0;
         sentinelWardenCooldown = 0;
+        clearSentinelGuard();
         setChanged();
+        syncSentinelClientData();
     }
 
     public boolean canSentinelAccess(Player player) {
@@ -946,11 +985,13 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     public void addSentinelLog(Player player, SentinelIntrusionType action, long gameTime) {
         if (kind() != ChestKind.SCULK_SENTINEL) return;
 
+        int attempts = 1;
         for (int index = 0; index < sentinelLog.size(); index++) {
             SentinelLogEntry old = sentinelLog.get(index);
             if (old.playerId().equals(player.getUUID())
                     && old.action() == action
                     && gameTime - old.gameTime() < SentinelLogic.LOG_DEDUPLICATION_TICKS) {
+                attempts = old.attempts() + 1;
                 sentinelLog.remove(index);
                 break;
             }
@@ -960,7 +1001,8 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
                 player.getUUID(),
                 player.getGameProfile().getName(),
                 action,
-                gameTime
+                gameTime,
+                attempts
         ));
         while (sentinelLog.size() > SentinelLogic.MAX_LOG_ENTRIES) {
             sentinelLog.remove(sentinelLog.size() - 1);
@@ -995,6 +1037,55 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         setChanged();
     }
 
+    public UUID getSentinelGuardWardenId() {
+        return sentinelGuardWardenId;
+    }
+
+    public UUID getSentinelGuardIntruderId() {
+        return sentinelGuardIntruderId;
+    }
+
+    public long getSentinelGuardExpiresAt() {
+        return sentinelGuardExpiresAt;
+    }
+
+    public boolean isSentinelGuardRetiring() {
+        return sentinelGuardRetiring;
+    }
+
+    public long getSentinelGuardRetireStartedAt() {
+        return sentinelGuardRetireStartedAt;
+    }
+
+    public void trackSentinelGuard(UUID wardenId, UUID intruderId, long expiresAt) {
+        sentinelGuardWardenId = wardenId;
+        sentinelGuardIntruderId = intruderId;
+        sentinelGuardExpiresAt = expiresAt;
+        sentinelGuardRetiring = false;
+        sentinelGuardRetireStartedAt = 0L;
+        setChanged();
+    }
+
+    public void setSentinelGuardIntruder(UUID intruderId) {
+        sentinelGuardIntruderId = intruderId;
+        setChanged();
+    }
+
+    public void beginSentinelGuardRetirement(long gameTime) {
+        sentinelGuardRetiring = true;
+        sentinelGuardRetireStartedAt = gameTime;
+        setChanged();
+    }
+
+    public void clearSentinelGuard() {
+        sentinelGuardWardenId = null;
+        sentinelGuardIntruderId = null;
+        sentinelGuardExpiresAt = 0L;
+        sentinelGuardRetiring = false;
+        sentinelGuardRetireStartedAt = 0L;
+        setChanged();
+    }
+
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
@@ -1024,6 +1115,11 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
             tag.putString(SENTINEL_OWNER_NAME_TAG, sentinelOwnerName);
             tag.putInt(SENTINEL_ALARM_TAG, sentinelAlarmTicks);
             tag.putInt(SENTINEL_WARDEN_COOLDOWN_TAG, sentinelWardenCooldown);
+            if (sentinelGuardWardenId != null) tag.putUUID(SENTINEL_GUARD_WARDEN_TAG, sentinelGuardWardenId);
+            if (sentinelGuardIntruderId != null) tag.putUUID(SENTINEL_GUARD_INTRUDER_TAG, sentinelGuardIntruderId);
+            tag.putLong(SENTINEL_GUARD_EXPIRES_TAG, sentinelGuardExpiresAt);
+            tag.putBoolean(SENTINEL_GUARD_RETIRING_TAG, sentinelGuardRetiring);
+            tag.putLong(SENTINEL_GUARD_RETIRE_STARTED_TAG, sentinelGuardRetireStartedAt);
 
             ListTag logTag = new ListTag();
             for (SentinelLogEntry entry : sentinelLog) {
@@ -1032,6 +1128,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
                 entryTag.putString("Name", entry.playerName());
                 entryTag.putInt("Action", entry.action().ordinal());
                 entryTag.putLong("GameTime", entry.gameTime());
+                entryTag.putInt("Attempts", entry.attempts());
                 logTag.add(entryTag);
             }
             tag.put(SENTINEL_LOG_TAG, logTag);
@@ -1079,6 +1176,15 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         sentinelOwnerName = tag.getString(SENTINEL_OWNER_NAME_TAG);
         sentinelAlarmTicks = tag.getInt(SENTINEL_ALARM_TAG);
         sentinelWardenCooldown = tag.getInt(SENTINEL_WARDEN_COOLDOWN_TAG);
+        sentinelGuardWardenId = tag.hasUUID(SENTINEL_GUARD_WARDEN_TAG)
+                ? tag.getUUID(SENTINEL_GUARD_WARDEN_TAG)
+                : null;
+        sentinelGuardIntruderId = tag.hasUUID(SENTINEL_GUARD_INTRUDER_TAG)
+                ? tag.getUUID(SENTINEL_GUARD_INTRUDER_TAG)
+                : null;
+        sentinelGuardExpiresAt = tag.getLong(SENTINEL_GUARD_EXPIRES_TAG);
+        sentinelGuardRetiring = tag.getBoolean(SENTINEL_GUARD_RETIRING_TAG);
+        sentinelGuardRetireStartedAt = tag.getLong(SENTINEL_GUARD_RETIRE_STARTED_TAG);
         sentinelLog.clear();
         ListTag logTag = tag.getList(SENTINEL_LOG_TAG, Tag.TAG_COMPOUND);
         for (int index = 0;
@@ -1090,7 +1196,8 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
                     entryTag.getUUID("Player"),
                     entryTag.getString("Name"),
                     SentinelIntrusionType.byId(entryTag.getInt("Action")),
-                    entryTag.getLong("GameTime")
+                    entryTag.getLong("GameTime"),
+                    entryTag.contains("Attempts", Tag.TAG_INT) ? entryTag.getInt("Attempts") : 1
             ));
         }
     }
@@ -1160,6 +1267,11 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         tag.remove(SENTINEL_LOG_TAG);
         tag.remove(SENTINEL_ALARM_TAG);
         tag.remove(SENTINEL_WARDEN_COOLDOWN_TAG);
+        tag.remove(SENTINEL_GUARD_WARDEN_TAG);
+        tag.remove(SENTINEL_GUARD_INTRUDER_TAG);
+        tag.remove(SENTINEL_GUARD_EXPIRES_TAG);
+        tag.remove(SENTINEL_GUARD_RETIRING_TAG);
+        tag.remove(SENTINEL_GUARD_RETIRE_STARTED_TAG);
     }
 
     private int countSupportedWitchItems() {
@@ -1644,6 +1756,9 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
 
         if (chest.kind() == ChestKind.SCULK_SENTINEL) {
             if (chest.sentinelWardenCooldown > 0) chest.sentinelWardenCooldown--;
+            if (level instanceof ServerLevel serverLevel) {
+                SentinelLogic.tickGuard(serverLevel, pos, chest);
+            }
             if (chest.sentinelAlarmTicks > 0) {
                 chest.sentinelAlarmTicks--;
                 if (chest.sentinelAlarmTicks == 0) {

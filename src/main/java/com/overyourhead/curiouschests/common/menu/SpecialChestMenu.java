@@ -47,17 +47,31 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
     private static final int BUILDERS_RESULT_Y = 99;
 
     // GUI slot tuning for the redesigned container textures.
-    // Change these values to nudge every normal slot for one chest without touching the PNG.
-    private static final int ENDER_DISPATCH_SLOT_OFFSET_X = 2;
-    private static final int ENDER_DISPATCH_SLOT_OFFSET_Y = 2;
-    private static final int SCULK_SENTINEL_SLOT_OFFSET_X = 2;
-    private static final int SCULK_SENTINEL_SLOT_OFFSET_Y = 2;
-    private static final int RESONANT_SLOT_OFFSET_X = 2;
-    private static final int RESONANT_SLOT_OFFSET_Y = 2;
+    // Chest, player inventory and hotbar are intentionally independent so each
+    // group can be aligned to the artwork without moving the others.
+    private static final int ENDER_DISPATCH_CHEST_OFFSET_X = 0;
+    private static final int ENDER_DISPATCH_CHEST_OFFSET_Y = -7;
+    private static final int ENDER_DISPATCH_INVENTORY_OFFSET_X = 0;
+    private static final int ENDER_DISPATCH_INVENTORY_OFFSET_Y = -2;
+    private static final int ENDER_DISPATCH_HOTBAR_OFFSET_X = 0;
+    private static final int ENDER_DISPATCH_HOTBAR_OFFSET_Y = 1;
 
-    // Resonance Crystal uses its own attached widget at the top-right, just like before.
-    // These coordinates are independent from the +2/+2 offset used by the normal Resonant slots.
-    private static final int RESONANT_CRYSTAL_SLOT_X = 183;
+    private static final int SCULK_SENTINEL_CHEST_OFFSET_X = 6;
+    private static final int SCULK_SENTINEL_CHEST_OFFSET_Y = 5;
+    private static final int SCULK_SENTINEL_INVENTORY_OFFSET_X = 7;
+    private static final int SCULK_SENTINEL_INVENTORY_OFFSET_Y = 2;
+    private static final int SCULK_SENTINEL_HOTBAR_OFFSET_X = 7;
+    private static final int SCULK_SENTINEL_HOTBAR_OFFSET_Y = 7;
+
+    private static final int RESONANT_CHEST_OFFSET_X = 8;
+    private static final int RESONANT_CHEST_OFFSET_Y = 2;
+    private static final int RESONANT_INVENTORY_OFFSET_X = 8;
+    private static final int RESONANT_INVENTORY_OFFSET_Y = 14;
+    private static final int RESONANT_HOTBAR_OFFSET_X = 8;
+    private static final int RESONANT_HOTBAR_OFFSET_Y = 20;
+
+    // Resonance Crystal uses its own attached widget at the top-right.
+    private static final int RESONANT_CRYSTAL_SLOT_X = 195;
     private static final int RESONANT_CRYSTAL_SLOT_Y = 18;
 
     public static SpecialChestMenu client(MenuType<SpecialChestMenu> type, int id, Inventory inventory, ChestKind kind) {
@@ -327,18 +341,54 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
 
     private int chestSlotOffsetX() {
         return switch (kind) {
-            case ENDER_DISPATCH -> ENDER_DISPATCH_SLOT_OFFSET_X;
-            case SCULK_SENTINEL -> SCULK_SENTINEL_SLOT_OFFSET_X;
-            case RESONANT -> RESONANT_SLOT_OFFSET_X;
+            case ENDER_DISPATCH -> ENDER_DISPATCH_CHEST_OFFSET_X;
+            case SCULK_SENTINEL -> SCULK_SENTINEL_CHEST_OFFSET_X;
+            case RESONANT -> RESONANT_CHEST_OFFSET_X;
             default -> 0;
         };
     }
 
     private int chestSlotOffsetY() {
         return switch (kind) {
-            case ENDER_DISPATCH -> ENDER_DISPATCH_SLOT_OFFSET_Y;
-            case SCULK_SENTINEL -> SCULK_SENTINEL_SLOT_OFFSET_Y;
-            case RESONANT -> RESONANT_SLOT_OFFSET_Y;
+            case ENDER_DISPATCH -> ENDER_DISPATCH_CHEST_OFFSET_Y;
+            case SCULK_SENTINEL -> SCULK_SENTINEL_CHEST_OFFSET_Y;
+            case RESONANT -> RESONANT_CHEST_OFFSET_Y;
+            default -> 0;
+        };
+    }
+
+    private int playerInventorySlotOffsetX() {
+        return switch (kind) {
+            case ENDER_DISPATCH -> ENDER_DISPATCH_INVENTORY_OFFSET_X;
+            case SCULK_SENTINEL -> SCULK_SENTINEL_INVENTORY_OFFSET_X;
+            case RESONANT -> RESONANT_INVENTORY_OFFSET_X;
+            default -> 0;
+        };
+    }
+
+    private int playerInventorySlotOffsetY() {
+        return switch (kind) {
+            case ENDER_DISPATCH -> ENDER_DISPATCH_INVENTORY_OFFSET_Y;
+            case SCULK_SENTINEL -> SCULK_SENTINEL_INVENTORY_OFFSET_Y;
+            case RESONANT -> RESONANT_INVENTORY_OFFSET_Y;
+            default -> 0;
+        };
+    }
+
+    private int playerHotbarSlotOffsetX() {
+        return switch (kind) {
+            case ENDER_DISPATCH -> ENDER_DISPATCH_HOTBAR_OFFSET_X;
+            case SCULK_SENTINEL -> SCULK_SENTINEL_HOTBAR_OFFSET_X;
+            case RESONANT -> RESONANT_HOTBAR_OFFSET_X;
+            default -> 0;
+        };
+    }
+
+    private int playerHotbarSlotOffsetY() {
+        return switch (kind) {
+            case ENDER_DISPATCH -> ENDER_DISPATCH_HOTBAR_OFFSET_Y;
+            case SCULK_SENTINEL -> SCULK_SENTINEL_HOTBAR_OFFSET_Y;
+            case RESONANT -> RESONANT_HOTBAR_OFFSET_Y;
             default -> 0;
         };
     }
@@ -391,21 +441,23 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
             yBase = 31 + kind.storageRows() * 18;
         }
 
-        xBase += chestSlotOffsetX();
-        yBase += chestSlotOffsetY();
+        int inventoryX = xBase + playerInventorySlotOffsetX();
+        int inventoryY = yBase + playerInventorySlotOffsetY();
+        int hotbarX = xBase + playerHotbarSlotOffsetX();
+        int hotbarY = yBase + 58 + playerHotbarSlotOffsetY();
 
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
                 addSlot(new Slot(
                         inventory,
                         column + row * 9 + 9,
-                        xBase + column * 18,
-                        yBase + row * 18
+                        inventoryX + column * 18,
+                        inventoryY + row * 18
                 ));
             }
         }
         for (int column = 0; column < 9; column++) {
-            addSlot(new Slot(inventory, column, xBase + column * 18, yBase + 58));
+            addSlot(new Slot(inventory, column, hotbarX + column * 18, hotbarY));
         }
     }
 

@@ -4,11 +4,9 @@ import com.overyourhead.curiouschests.CuriousChestsMod;
 import com.overyourhead.curiouschests.common.network.RequestSentinelLogPayload;
 import com.overyourhead.curiouschests.common.network.SentinelLogPayload;
 import com.overyourhead.curiouschests.common.sentinel.SentinelLogEntry;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.PlayerFaceRenderer;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -34,6 +32,7 @@ public final class SentinelLogScreen extends Screen {
     private static final int ROWS_VISIBLE = 5;
     private static final int FIRST_ROW_Y = 34;
     private static final int ROW_HEIGHT = 27;
+    private static final int TIME_X = 153;
 
     private static final ResourceLocation LOG_TEXTURE = ResourceLocation.fromNamespaceAndPath(
             CuriousChestsMod.MOD_ID,
@@ -52,6 +51,7 @@ public final class SentinelLogScreen extends Screen {
     private List<SentinelLogEntry> entries = List.of();
     private long serverGameTime;
     private int scroll;
+    private int refreshTicks;
 
     public SentinelLogScreen(SpecialChestScreen parent, int containerId) {
         super(Component.translatable("gui.curiouschests.sculk_sentinel.log_title"));
@@ -75,6 +75,12 @@ public final class SentinelLogScreen extends Screen {
         // stale parent container screen in that case.
         if (minecraft.player.containerMenu.containerId != containerId) {
             minecraft.setScreen(null);
+            return;
+        }
+
+        if (++refreshTicks >= 20) {
+            refreshTicks = 0;
+            refreshLog();
         }
     }
 
@@ -148,22 +154,20 @@ public final class SentinelLogScreen extends Screen {
             graphics.drawCenteredString(font, initial, x + 9, y + 8, 0xD8E6E0);
         }
 
-        graphics.drawString(font, trim(entry.playerName(), 124), x + 25, y + 2, 0xE3ECE8, false);
-        graphics.drawString(
-                font,
-                Component.translatable(
-                        "gui.curiouschests.sculk_sentinel.action." + entry.action().name().toLowerCase(Locale.ROOT)
-                ),
-                x + 25,
-                y + 12,
-                0x9DB3AD,
-                false
-        );
-
+        // Text sits one pixel lower than before so both lines are optically
+        // centered inside the existing row art. The avatar/texture is untouched.
+        graphics.drawString(font, trim(entry.playerName(), 124), x + 25, y + 3, 0xE3ECE8, false);
         long seconds = Math.max(0L, (serverGameTime - entry.gameTime()) / 20L);
-        Component ago = Component.translatable("gui.curiouschests.sculk_sentinel.seconds_ago", seconds);
-        int agoX = leftPos + IMAGE_WIDTH - 12 - font.width(ago);
-        graphics.drawString(font, ago, agoX, y + 12, 0x657D77, false);
+        Component ago = formatAge(seconds);
+        int agoX = leftPos + TIME_X;
+
+        Component action = Component.translatable(
+                "gui.curiouschests.sculk_sentinel.action." + entry.action().name().toLowerCase(Locale.ROOT)
+        );
+        String actionText = (entry.attempts() > 1 ? "×" + entry.attempts() + " " : "") + action.getString();
+        int actionWidth = Math.max(0, agoX - (x + 25) - 4);
+        graphics.drawString(font, trim(actionText, actionWidth), x + 25, y + 13, 0x9DB3AD, false);
+        graphics.drawString(font, ago, agoX, y + 13, 0x657D77, false);
     }
 
     private void renderFloatingButton(GuiGraphics graphics, int mouseX, int mouseY) {
@@ -226,6 +230,11 @@ public final class SentinelLogScreen extends Screen {
     private void requestLog() {
         loading = true;
         entries = List.of();
+        refreshTicks = 0;
+        refreshLog();
+    }
+
+    private void refreshLog() {
         PacketDistributor.sendToServer(new RequestSentinelLogPayload(containerId));
     }
 
@@ -247,12 +256,33 @@ public final class SentinelLogScreen extends Screen {
     }
 
     private PlayerInfo playerInfo(SentinelLogEntry entry) {
-        ClientPacketListener connection = Minecraft.getInstance().getConnection();
-        return connection == null ? null : connection.getPlayerInfo(entry.playerId());
+        return SentinelAvatarCache.get(entry.playerId());
     }
 
     private String trim(String value, int width) {
         return font.plainSubstrByWidth(value, width);
+    }
+
+    private Component formatAge(long totalSeconds) {
+        long value;
+        String unit;
+        if (totalSeconds < 60L) {
+            value = totalSeconds;
+            unit = "s";
+        } else if (totalSeconds < 60L * 60L) {
+            value = totalSeconds / 60L;
+            unit = "m";
+        } else if (totalSeconds < 24L * 60L * 60L) {
+            value = totalSeconds / (60L * 60L);
+            unit = "h";
+        } else if (totalSeconds < 7L * 24L * 60L * 60L) {
+            value = totalSeconds / (24L * 60L * 60L);
+            unit = "d";
+        } else {
+            value = totalSeconds / (7L * 24L * 60L * 60L);
+            unit = "w";
+        }
+        return Component.translatable("gui.curiouschests.sculk_sentinel.time_ago", value, unit);
     }
 
     private int buttonX() {

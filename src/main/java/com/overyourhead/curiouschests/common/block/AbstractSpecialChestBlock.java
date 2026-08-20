@@ -88,7 +88,11 @@ public abstract class AbstractSpecialChestBlock extends BaseEntityBlock {
     ) {
         if (!player.isShiftKeyDown()
                 || kind() != ChestKind.BOTTOMLESS
-                || hit.getDirection() != state.getValue(FACING)) {
+                || hit.getDirection() != state.getValue(FACING)
+                || stack.isEmpty()) {
+            // Empty-hand Shift+RMB must continue into useWithoutItem(), where the
+            // current display item is returned to the player. Previously the empty
+            // stack was consumed here even though setStorageDisplayItem rejected it.
             return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
 
@@ -188,6 +192,10 @@ public abstract class AbstractSpecialChestBlock extends BaseEntityBlock {
 
             if (kind() == ChestKind.RESONANT && level instanceof ServerLevel serverLevel) {
                 ResonanceLogic.unregisterPlaced(serverLevel, chest);
+            }
+
+            if (kind() == ChestKind.SCULK_SENTINEL && level instanceof ServerLevel serverLevel) {
+                SentinelLogic.retireGuardForRemovedChest(serverLevel, chest);
             }
 
             level.updateNeighbourForOutputSignal(pos, this);

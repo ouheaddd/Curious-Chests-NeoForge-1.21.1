@@ -9,7 +9,7 @@ public final class StorageChestEvents {
     private StorageChestEvents() {}
 
     public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
-        if (!event.getEntity().isShiftKeyDown() || event.getItemStack().isEmpty()) return;
+        if (!event.getEntity().isShiftKeyDown()) return;
 
         var state = event.getLevel().getBlockState(event.getPos());
         if (!(state.getBlock() instanceof BottomlessChestBlock)) return;
@@ -19,9 +19,10 @@ public final class StorageChestEvents {
         // (including another Storage Chest) can still be placed against it normally.
         if (event.getFace() != state.getValue(BottomlessChestBlock.FACING)) return;
 
-        // Vanilla normally lets sneak + item bypass a block's own interaction so a
+        // Vanilla normally lets sneak interaction bypass a block's own action so a
         // block can be placed against chests. Force only the front-face display action
-        // back through useItemOn; a successful display insertion stops item use.
+        // back through the chest interaction pipeline. Held items can replace the
+        // display; an empty hand falls through to useWithoutItem and removes it.
         event.setUseBlock(TriState.TRUE);
         event.setUseItem(TriState.FALSE);
     }

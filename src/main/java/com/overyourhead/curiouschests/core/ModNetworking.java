@@ -18,7 +18,8 @@ public final class ModNetworking {
     private ModNetworking() {}
 
     public static void register(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar("1");
+        // Sentinel log entries now include an attempt counter, so reject clients using the old payload layout.
+        PayloadRegistrar registrar = event.registrar("2");
         registrar.playToServer(
                 RequestSentinelLogPayload.TYPE,
                 RequestSentinelLogPayload.STREAM_CODEC,

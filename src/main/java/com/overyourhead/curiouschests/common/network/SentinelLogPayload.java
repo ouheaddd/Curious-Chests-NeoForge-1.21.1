@@ -39,6 +39,7 @@ public record SentinelLogPayload(
             buffer.writeUtf(entry.playerName(), MAX_NAME_LENGTH);
             buffer.writeByte(entry.action().ordinal());
             buffer.writeVarLong(entry.gameTime());
+            buffer.writeVarInt(entry.attempts());
         }
     }
 
@@ -52,7 +53,8 @@ public record SentinelLogPayload(
                     buffer.readUUID(),
                     buffer.readUtf(MAX_NAME_LENGTH),
                     SentinelIntrusionType.byId(buffer.readUnsignedByte()),
-                    buffer.readVarLong()
+                    buffer.readVarLong(),
+                    Math.max(1, buffer.readVarInt())
             );
             if (index < MAX_ENTRIES) entries.add(entry);
         }
