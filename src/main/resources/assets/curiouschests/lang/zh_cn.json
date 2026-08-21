@@ -71,5 +71,10 @@
   "tooltip.curiouschests.witch.ability": "可储存普通、喷溅和滞留药水；相同药水可堆叠至16瓶。",
   "gui.curiouschests.archivist.catalog_title": "档案员索引",
   "gui.curiouschests.archivist.catalog_empty": "未储存任何附魔。",
-  "tooltip.curiouschests.resonant.rebind_hint": "重新放置箱子会产生新的共鸣；此前调谐的水晶将不再生效。"
+  "tooltip.curiouschests.resonant.rebind_hint": "重新放置箱子会产生新的共鸣；此前调谐的水晶将不再生效。",
+  "block.curiouschests.trappers_chest": "捕获者箱",
+  "container.curiouschests.trapper": "捕获者箱",
+  "tooltip.curiouschests.trapper.lore_1": "一座仿佛永远不会真正空荡的铜制牢笼。",
+  "tooltip.curiouschests.trapper.lore_2": "附近的生物会在它开启之前先感受到牵引。",
+  "tooltip.curiouschests.trapper.ability": "可捕获5格范围内最多9只生物；在界面中点击已捕获的生物即可释放。"
 }

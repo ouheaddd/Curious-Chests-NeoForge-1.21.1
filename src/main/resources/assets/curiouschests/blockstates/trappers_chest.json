@@ -1,0 +1,12 @@
+{
+  "variants": {
+    "facing=north,occupied=false": { "model": "minecraft:block/vault", "y": 0 },
+    "facing=east,occupied=false": { "model": "minecraft:block/vault", "y": 90 },
+    "facing=south,occupied=false": { "model": "minecraft:block/vault", "y": 180 },
+    "facing=west,occupied=false": { "model": "minecraft:block/vault", "y": 270 },
+    "facing=north,occupied=true": { "model": "minecraft:block/vault_active", "y": 0 },
+    "facing=east,occupied=true": { "model": "minecraft:block/vault_active", "y": 90 },
+    "facing=south,occupied=true": { "model": "minecraft:block/vault_active", "y": 180 },
+    "facing=west,occupied=true": { "model": "minecraft:block/vault_active", "y": 270 }
+  }
+}

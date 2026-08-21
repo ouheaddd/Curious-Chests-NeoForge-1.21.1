@@ -71,5 +71,10 @@
   "tooltip.curiouschests.witch.ability": "Хранит обычные, взрывные и оседающие зелья; одинаковые стакаются до 16.",
   "gui.curiouschests.archivist.catalog_title": "Каталог архивариуса",
   "gui.curiouschests.archivist.catalog_empty": "В архиве пока нет чар.",
-  "tooltip.curiouschests.resonant.rebind_hint": "После перестановки сундук создаёт новый резонанс; старые настроенные кристаллы больше не работают."
+  "tooltip.curiouschests.resonant.rebind_hint": "После перестановки сундук создаёт новый резонанс; старые настроенные кристаллы больше не работают.",
+  "block.curiouschests.trappers_chest": "Сундук-ловец",
+  "container.curiouschests.trapper": "Сундук-ловец",
+  "tooltip.curiouschests.trapper.lore_1": "Медная клетка, которая будто никогда не бывает совсем пустой.",
+  "tooltip.curiouschests.trapper.lore_2": "Существа рядом чувствуют притяжение раньше, чем видят, как он открывается.",
+  "tooltip.curiouschests.trapper.ability": "Ловит до 9 существ в радиусе 5 блоков; нажми на пойманное существо в GUI, чтобы выпустить его."
 }

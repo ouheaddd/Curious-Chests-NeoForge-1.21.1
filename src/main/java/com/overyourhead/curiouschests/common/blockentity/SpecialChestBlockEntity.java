@@ -1,6 +1,7 @@
 package com.overyourhead.curiouschests.common.blockentity;
 
 import com.overyourhead.curiouschests.common.block.AbstractSpecialChestBlock;
+import com.overyourhead.curiouschests.common.block.TrapperChestBlock;
 import com.overyourhead.curiouschests.common.chest.ChestKind;
 import com.overyourhead.curiouschests.common.chest.ChestRules;
 import com.overyourhead.curiouschests.common.logic.ArchivistLogic;
@@ -11,6 +12,7 @@ import com.overyourhead.curiouschests.common.logic.InfernalLogic;
 import com.overyourhead.curiouschests.common.logic.ResonanceLogic;
 import com.overyourhead.curiouschests.common.logic.SentinelLogic;
 import com.overyourhead.curiouschests.common.logic.WitchLogic;
+import com.overyourhead.curiouschests.common.logic.TrapperLogic;
 import com.overyourhead.curiouschests.common.menu.SpecialChestMenu;
 import com.overyourhead.curiouschests.common.sentinel.SentinelIntrusionType;
 import com.overyourhead.curiouschests.common.sentinel.SentinelLogEntry;
@@ -42,6 +44,9 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.Containers;
 import net.minecraft.world.WorldlyContainer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -55,6 +60,7 @@ import net.minecraft.world.level.block.entity.ChestLidController;
 import net.minecraft.world.level.block.entity.ContainerOpenersCounter;
 import net.minecraft.world.level.block.entity.LidBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.wrapper.InvWrapper;
 import net.neoforged.neoforge.items.wrapper.RangedWrapper;
@@ -87,6 +93,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     private static final String RESONANCE_TRANSFER_COOLDOWN_TAG = "ResonanceTransferCooldown";
     private static final String RESONANCE_RECEIVED_TAG = "ResonanceReceivedSlots";
     private static final String DISPATCH_PREVIEW_TAG = "DispatchPreview";
+    private static final String TRAPPER_ENTITIES_TAG = "TrapperEntities";
 
     private final ChestLidController lidController = new ChestLidController();
     private final ContainerOpenersCounter openersCounter = new ContainerOpenersCounter() {
@@ -133,6 +140,21 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     private int witchLastPotionCount;
     private int witchClientBurstTicks;
     private int witchAmbientSoundCooldown;
+
+    // Trapper creature storage is deliberately separate from the ItemStack
+    // container. Each entry is a complete entity NBT blob, capped at nine.
+    private final List<CompoundTag> trappedEntities = new ArrayList<>();
+    private UUID trapperCaptureTargetId;
+    private int trapperCaptureTicks;
+    private int trapperCaptureCooldown;
+    private double trapperCaptureOriginalScale = 1.0D;
+    // Final suction is a short, controlled visual phase that moves the target
+    // through the chest collision after it has physically reached the mouth.
+    // It is intentionally transient and is never persisted to NBT.
+    private boolean trapperFinalSuction;
+    private int trapperFinalSuctionTicks;
+    private boolean trapperPreviewDirty = true;
+    private final List<Entity> trapperClientPreviewEntities = new ArrayList<>();
 
     // Client-only visual state for the vanilla-style floating Archivist book.
     private int archivistBookTime;
@@ -282,7 +304,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         super(ModBlockEntities.SPECIAL_CHEST.get(), pos, state);
         ChestKind initialKind = kindFromState(state);
         items = NonNullList.withSize(initialKind.slots(), ItemStack.EMPTY);
-        if (initialKind == ChestKind.SCULK_SENTINEL) {
+        if (initialKind == ChestKind.SCULK_SENTINEL || initialKind == ChestKind.TRAPPER) {
             sidedSlots = new int[0];
         } else if (initialKind == ChestKind.RESONANT) {
             sidedSlots = java.util.stream.IntStream.range(0, ResonanceLogic.STORAGE_SLOTS).toArray();
@@ -400,6 +422,11 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
                 sound = SoundEvents.BREWING_STAND_BREW;
                 volume = opening ? 0.266F : 0.11F;
                 pitch = opening ? 1.08F : 0.84F;
+            }
+            case TRAPPER -> {
+                sound = opening ? SoundEvents.VAULT_OPEN_SHUTTER : SoundEvents.VAULT_CLOSE_SHUTTER;
+                volume = opening ? 0.28F : 0.22F;
+                pitch = opening ? 1.04F : 0.94F;
             }
             case BOTTOMLESS -> {
                 return;
@@ -565,6 +592,11 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
             tag.putString(SENTINEL_OWNER_NAME_TAG, sentinelOwnerName);
             return tag;
         }
+        if (kind() == ChestKind.TRAPPER) {
+            CompoundTag tag = new CompoundTag();
+            writeTrapperEntities(tag);
+            return tag;
+        }
         return super.getUpdateTag(registries);
     }
 
@@ -572,7 +604,8 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     public Packet<ClientGamePacketListener> getUpdatePacket() {
         if (kind() == ChestKind.ENDER_DISPATCH
                 || kind() == ChestKind.BOTTOMLESS
-                || kind() == ChestKind.SCULK_SENTINEL) {
+                || kind() == ChestKind.SCULK_SENTINEL
+                || kind() == ChestKind.TRAPPER) {
             return ClientboundBlockEntityDataPacket.create(this);
         }
         return super.getUpdatePacket();
@@ -590,6 +623,10 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         }
         if (kind() == ChestKind.SCULK_SENTINEL) {
             readSentinelClientTag(tag);
+            return;
+        }
+        if (kind() == ChestKind.TRAPPER) {
+            readTrapperEntities(tag);
             return;
         }
         loadWithComponents(tag, registries);
@@ -611,6 +648,10 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         }
         if (kind() == ChestKind.SCULK_SENTINEL) {
             readSentinelClientTag(packet.getTag());
+            return;
+        }
+        if (kind() == ChestKind.TRAPPER) {
+            readTrapperEntities(packet.getTag());
             return;
         }
         loadWithComponents(packet.getTag(), registries);
@@ -859,6 +900,11 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
                     storageDisplayItem.copy()
             );
             storageDisplayItem = ItemStack.EMPTY;
+        }
+
+        if (kind() == ChestKind.TRAPPER && level instanceof ServerLevel serverLevel) {
+            TrapperLogic.cancelCapture(serverLevel, this);
+            releaseAllTrappedEntities(serverLevel);
         }
 
         resonanceReceivedSlots.clear();
@@ -1133,6 +1179,10 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
             }
             tag.put(SENTINEL_LOG_TAG, logTag);
         }
+
+        if (kind() == ChestKind.TRAPPER) {
+            writeTrapperEntities(tag);
+        }
     }
 
     @Override
@@ -1200,6 +1250,8 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
                     entryTag.contains("Attempts", Tag.TAG_INT) ? entryTag.getInt("Attempts") : 1
             ));
         }
+
+        readTrapperEntities(tag);
     }
 
     @Override
@@ -1272,6 +1324,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         tag.remove(SENTINEL_GUARD_EXPIRES_TAG);
         tag.remove(SENTINEL_GUARD_RETIRING_TAG);
         tag.remove(SENTINEL_GUARD_RETIRE_STARTED_TAG);
+        tag.remove(TRAPPER_ENTITIES_TAG);
     }
 
     private int countSupportedWitchItems() {
@@ -1661,10 +1714,257 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         }
     }
 
+
+
+    private void clientTickTrapper(Level level, BlockPos pos) {
+        if (trappedEntities.isEmpty()) return;
+        double cx = pos.getX() + 0.5D;
+        double cy = pos.getY() + 0.52D;
+        double cz = pos.getZ() + 0.5D;
+
+        if (level.random.nextFloat() < 0.34F) {
+            double angle = level.random.nextDouble() * Math.PI * 2.0D;
+            double radius = 0.26D + level.random.nextDouble() * 0.20D;
+            double x = cx + Math.cos(angle) * radius;
+            double y = cy + (level.random.nextDouble() - 0.5D) * 0.34D;
+            double z = cz + Math.sin(angle) * radius;
+            // VAULT_CONNECTION interprets the final vector as a destination,
+            // producing the same "energy travelling toward a point" language
+            // used by the vanilla Vault.
+            level.addParticle(ParticleTypes.VAULT_CONNECTION, x, y, z, cx, cy, cz);
+        }
+        if (level.random.nextFloat() < 0.10F) {
+            level.addParticle(
+                    ParticleTypes.REVERSE_PORTAL,
+                    cx + (level.random.nextDouble() - 0.5D) * 0.45D,
+                    cy + (level.random.nextDouble() - 0.5D) * 0.30D,
+                    cz + (level.random.nextDouble() - 0.5D) * 0.45D,
+                    0.0D, 0.005D, 0.0D
+            );
+        }
+        if (level.random.nextFloat() < 0.12F) {
+            double angle = (level.getGameTime() * 0.18D) + level.random.nextDouble() * 0.7D;
+            double radius = 0.24D + level.random.nextDouble() * 0.08D;
+            level.addParticle(
+                    ParticleTypes.SMALL_FLAME,
+                    cx + Math.cos(angle) * radius,
+                    cy + 0.04D + (level.random.nextDouble() - 0.5D) * 0.20D,
+                    cz + Math.sin(angle) * radius,
+                    -Math.sin(angle) * 0.006D,
+                    0.006D,
+                    Math.cos(angle) * 0.006D
+            );
+        }
+        if (level.random.nextFloat() < 0.008F) {
+            level.playLocalSound(cx, cy, cz, SoundEvents.VAULT_AMBIENT, SoundSource.BLOCKS, 0.22F, 1.0F, false);
+        }
+    }
+
+    public int getWorkTicker() {
+        return workTicker;
+    }
+
+    public UUID getTrapperCaptureTargetId() {
+        return trapperCaptureTargetId;
+    }
+
+    public int getTrapperCaptureCooldown() {
+        return trapperCaptureCooldown;
+    }
+
+    public void setTrapperCaptureCooldown(int ticks) {
+        trapperCaptureCooldown = Math.max(0, ticks);
+    }
+
+    public double getTrapperCaptureOriginalScale() {
+        return trapperCaptureOriginalScale;
+    }
+
+    public void beginTrapperCapture(UUID targetId, double originalScale) {
+        if (kind() != ChestKind.TRAPPER) return;
+        trapperCaptureTargetId = targetId;
+        trapperCaptureTicks = 0;
+        trapperCaptureOriginalScale = Math.max(0.0625D, originalScale);
+        trapperFinalSuction = false;
+        trapperFinalSuctionTicks = 0;
+    }
+
+    public int advanceTrapperCaptureTicks() {
+        return ++trapperCaptureTicks;
+    }
+
+    public boolean isTrapperFinalSuction() {
+        return trapperFinalSuction;
+    }
+
+    public void beginTrapperFinalSuction() {
+        if (kind() != ChestKind.TRAPPER || trapperFinalSuction) return;
+        trapperFinalSuction = true;
+        trapperFinalSuctionTicks = 0;
+    }
+
+    public int advanceTrapperFinalSuctionTicks() {
+        return ++trapperFinalSuctionTicks;
+    }
+
+    public void finishTrapperCapture(int cooldownTicks) {
+        trapperCaptureTargetId = null;
+        trapperCaptureTicks = 0;
+        trapperCaptureOriginalScale = 1.0D;
+        trapperFinalSuction = false;
+        trapperFinalSuctionTicks = 0;
+        trapperCaptureCooldown = Math.max(0, cooldownTicks);
+    }
+
+    public int getTrappedEntityCount() {
+        return trappedEntities.size();
+    }
+
+    public List<CompoundTag> getTrappedEntityTags() {
+        List<CompoundTag> result = new ArrayList<>(trappedEntities.size());
+        for (CompoundTag tag : trappedEntities) result.add(tag.copy());
+        return List.copyOf(result);
+    }
+
+    public boolean captureTrapperEntity(LivingEntity entity) {
+        if (kind() != ChestKind.TRAPPER || trappedEntities.size() >= TrapperLogic.CAPACITY) return false;
+        if (!TrapperLogic.canCapture(entity)) return false;
+
+        // Store this creature only. Entity#save also serializes passengers, which
+        // could duplicate riders when the creature is later released.
+        CompoundTag stored = entity.saveWithoutId(new CompoundTag());
+        stored.putString("id", EntityType.getKey(entity.getType()).toString());
+
+        trappedEntities.add(stored.copy());
+        trapperPreviewDirty = true;
+        setChanged();
+        updateTrapperOccupiedState();
+        syncTrapperClientData();
+        return true;
+    }
+
+    public boolean releaseTrappedEntity(ServerLevel level, int index) {
+        return releaseTrappedEntity(level, index, true);
+    }
+
+    private boolean releaseTrappedEntity(ServerLevel level, int index, boolean syncAfterRelease) {
+        if (kind() != ChestKind.TRAPPER || index < 0 || index >= trappedEntities.size()) return false;
+        CompoundTag stored = trappedEntities.get(index).copy();
+        Direction facing = getBlockState().hasProperty(AbstractSpecialChestBlock.FACING)
+                ? getBlockState().getValue(AbstractSpecialChestBlock.FACING)
+                : Direction.NORTH;
+        double x = worldPosition.getX() + 0.5D + facing.getStepX() * 1.35D;
+        double y = worldPosition.getY() + 0.10D;
+        double z = worldPosition.getZ() + 0.5D + facing.getStepZ() * 1.35D;
+
+        Entity restored = EntityType.loadEntityRecursive(stored, level, entity -> entity);
+        if (!(restored instanceof LivingEntity living) || !TrapperLogic.canCapture(living)) return false;
+        restored.moveTo(x, y, z, facing.toYRot(), restored.getXRot());
+        restored.setDeltaMovement(Vec3.ZERO);
+        restored.fallDistance = 0.0F;
+
+        // A normal GUI release only succeeds if the creature has room in front of
+        // the chest. Breaking the chest uses the same spawn point but is allowed to
+        // force-release so stored creatures can never be deleted by a blocked exit.
+        if (syncAfterRelease && !level.noCollision(restored, restored.getBoundingBox())) return false;
+
+        trappedEntities.remove(index);
+        level.addFreshEntityWithPassengers(restored);
+        level.playSound(null, worldPosition, SoundEvents.VAULT_EJECT_ITEM, SoundSource.BLOCKS, 0.82F, 1.0F);
+        level.sendParticles(ParticleTypes.REVERSE_PORTAL, x, y + 0.6D, z, 20, 0.35D, 0.45D, 0.35D, 0.10D);
+        trapperPreviewDirty = true;
+        setChanged();
+        if (syncAfterRelease) {
+            updateTrapperOccupiedState();
+            syncTrapperClientData();
+        }
+        return true;
+    }
+
+    private void releaseAllTrappedEntities(ServerLevel level) {
+        // Breaking the prototype chest releases its prisoners instead of silently
+        // deleting them or trying to serialize arbitrary entities into an ItemStack.
+        // Do not mutate OCCUPIED while onRemove is already replacing the block.
+        while (!trappedEntities.isEmpty()) {
+            if (!releaseTrappedEntity(level, 0, false)) {
+                // Corrupt/unloadable NBT cannot be reconstructed, but valid entities
+                // are force-spawned even if the space in front is obstructed.
+                trappedEntities.remove(0);
+            }
+        }
+    }
+
+    public void updateTrapperOccupiedState() {
+        if (level == null || level.isClientSide || kind() != ChestKind.TRAPPER) return;
+        BlockState state = getBlockState();
+        if (!state.hasProperty(TrapperChestBlock.OCCUPIED)) return;
+        boolean occupied = !trappedEntities.isEmpty() || trapperCaptureTargetId != null;
+        if (state.getValue(TrapperChestBlock.OCCUPIED) != occupied) {
+            level.setBlock(worldPosition, state.setValue(TrapperChestBlock.OCCUPIED, occupied), Block.UPDATE_ALL);
+        }
+    }
+
+    private void syncTrapperClientData() {
+        if (level == null || level.isClientSide || kind() != ChestKind.TRAPPER) return;
+        BlockState state = getBlockState();
+        level.sendBlockUpdated(worldPosition, state, state, Block.UPDATE_CLIENTS);
+    }
+
+    private void writeTrapperEntities(CompoundTag tag) {
+        if (kind() != ChestKind.TRAPPER || trappedEntities.isEmpty()) return;
+        ListTag list = new ListTag();
+        for (int i = 0; i < Math.min(TrapperLogic.CAPACITY, trappedEntities.size()); i++) {
+            list.add(trappedEntities.get(i).copy());
+        }
+        tag.put(TRAPPER_ENTITIES_TAG, list);
+    }
+
+    private void readTrapperEntities(CompoundTag tag) {
+        trappedEntities.clear();
+        if (kind() == ChestKind.TRAPPER) {
+            ListTag list = tag.getList(TRAPPER_ENTITIES_TAG, Tag.TAG_COMPOUND);
+            for (int i = 0; i < Math.min(TrapperLogic.CAPACITY, list.size()); i++) {
+                CompoundTag entityTag = list.getCompound(i);
+                if (entityTag.contains("id", Tag.TAG_STRING)) trappedEntities.add(entityTag.copy());
+            }
+        }
+        trapperPreviewDirty = true;
+        trapperClientPreviewEntities.clear();
+    }
+
+    public Entity getTrapperPreviewEntity() {
+        if (kind() != ChestKind.TRAPPER || level == null || trappedEntities.isEmpty()) return null;
+        if (trapperPreviewDirty) rebuildTrapperPreviewEntities();
+        if (trapperClientPreviewEntities.isEmpty()) return null;
+        int index = (int) ((level.getGameTime() / 40L) % trapperClientPreviewEntities.size());
+        return trapperClientPreviewEntities.get(index);
+    }
+
+    private void rebuildTrapperPreviewEntities() {
+        trapperClientPreviewEntities.clear();
+        if (level != null) {
+            for (CompoundTag tag : trappedEntities) {
+                Entity entity = EntityType.loadEntityRecursive(tag.copy(), level, loaded -> loaded);
+                if (entity instanceof LivingEntity) {
+                    entity.setCustomNameVisible(false);
+                    trapperClientPreviewEntities.add(entity);
+                }
+            }
+        }
+        trapperPreviewDirty = false;
+    }
+
     @Override
     public void setRemoved() {
         if (kind() == ChestKind.RESONANT) {
             ResonanceLogic.unregister(this);
+        }
+        if (kind() == ChestKind.TRAPPER
+                && trapperCaptureTargetId != null
+                && level instanceof ServerLevel serverLevel) {
+            // Chunk unload / block removal must not leave the target permanently
+            // shrunk if the capture sequence is interrupted.
+            TrapperLogic.cancelCapture(serverLevel, this);
         }
         super.setRemoved();
     }
@@ -1679,6 +1979,9 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         }
         if (chest.kind() == ChestKind.INFERNAL) {
             chest.clientTickInfernal(level, pos);
+        }
+        if (chest.kind() == ChestKind.TRAPPER) {
+            chest.clientTickTrapper(level, pos);
         }
     }
 
@@ -1766,6 +2069,11 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
                     chest.setChanged();
                 }
             }
+        }
+
+        if (level instanceof ServerLevel serverLevel && chest.kind() == ChestKind.TRAPPER) {
+            TrapperLogic.tick(serverLevel, pos, state, chest);
+            chest.updateTrapperOccupiedState();
         }
 
         if (chest.kind() == ChestKind.WITCH) {

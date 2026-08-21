@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "III",
+    "ITI",
+    "ICI"
+  ],
+  "key": {
+    "I": { "item": "minecraft:copper_ingot" },
+    "T": { "item": "minecraft:trial_key" },
+    "C": { "item": "minecraft:chest" }
+  },
+  "result": {
+    "id": "curiouschests:trappers_chest",
+    "count": 1
+  }
+}

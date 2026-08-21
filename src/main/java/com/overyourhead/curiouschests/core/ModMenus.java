@@ -20,6 +20,7 @@ public final class ModMenus {
     public static final DeferredHolder<MenuType<?>, MenuType<SpecialChestMenu>> RESONANT = register("resonant", ChestKind.RESONANT);
     public static final DeferredHolder<MenuType<?>, MenuType<SpecialChestMenu>> ARCHIVIST = register("archivist", ChestKind.ARCHIVIST);
     public static final DeferredHolder<MenuType<?>, MenuType<SpecialChestMenu>> WITCH = register("witch", ChestKind.WITCH);
+    public static final DeferredHolder<MenuType<?>, MenuType<SpecialChestMenu>> TRAPPER = register("trapper", ChestKind.TRAPPER);
 
     private static DeferredHolder<MenuType<?>, MenuType<SpecialChestMenu>> register(String id, ChestKind kind) {
         return MENUS.register(id, () -> new MenuType<>(
@@ -43,6 +44,7 @@ public final class ModMenus {
             case RESONANT -> RESONANT.get();
             case ARCHIVIST -> ARCHIVIST.get();
             case WITCH -> WITCH.get();
+            case TRAPPER -> TRAPPER.get();
         };
     }
 

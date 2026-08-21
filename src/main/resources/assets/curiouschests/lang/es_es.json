@@ -71,5 +71,10 @@
   "tooltip.curiouschests.witch.ability": "Guarda pociones bebibles, arrojadizas y persistentes; las pociones iguales se apilan hasta 16.",
   "gui.curiouschests.archivist.catalog_title": "Índice del Archivista",
   "gui.curiouschests.archivist.catalog_empty": "No hay encantamientos almacenados.",
-  "tooltip.curiouschests.resonant.rebind_hint": "Al volver a colocar el cofre se crea una nueva resonancia; los cristales sintonizados anteriormente dejan de funcionar."
+  "tooltip.curiouschests.resonant.rebind_hint": "Al volver a colocar el cofre se crea una nueva resonancia; los cristales sintonizados anteriormente dejan de funcionar.",
+  "block.curiouschests.trappers_chest": "Cofre del trampero",
+  "container.curiouschests.trapper": "Cofre del trampero",
+  "tooltip.curiouschests.trapper.lore_1": "Una jaula de cobre que nunca parece estar del todo vacía.",
+  "tooltip.curiouschests.trapper.lore_2": "Las criaturas cercanas sienten el tirón antes de verlo abrirse.",
+  "tooltip.curiouschests.trapper.ability": "Captura hasta 9 criaturas en un radio de 5 bloques; haz clic en una criatura del GUI para liberarla."
 }

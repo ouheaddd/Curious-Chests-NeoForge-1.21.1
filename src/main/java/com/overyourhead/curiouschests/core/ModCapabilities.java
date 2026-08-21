@@ -12,7 +12,8 @@ public final class ModCapabilities {
         event.registerBlockEntity(
                 Capabilities.ItemHandler.BLOCK,
                 ModBlockEntities.SPECIAL_CHEST.get(),
-                (blockEntity, side) -> blockEntity.kind() == ChestKind.SCULK_SENTINEL
+                (blockEntity, side) -> (blockEntity.kind() == ChestKind.SCULK_SENTINEL
+                        || blockEntity.kind() == ChestKind.TRAPPER)
                         ? null
                         : blockEntity.getItemHandler()
         );

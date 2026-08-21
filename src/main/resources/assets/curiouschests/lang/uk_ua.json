@@ -71,5 +71,10 @@
   "tooltip.curiouschests.witch.ability": "Зберігає питні, вибухові та осідальні зілля; однакові зілля складаються до 16.",
   "gui.curiouschests.archivist.catalog_title": "Покажчик Архіваріуса",
   "gui.curiouschests.archivist.catalog_empty": "Збережених зачарувань немає.",
-  "tooltip.curiouschests.resonant.rebind_hint": "Після повторного встановлення скриня створює новий резонанс; раніше налаштовані кристали більше не працюють."
+  "tooltip.curiouschests.resonant.rebind_hint": "Після повторного встановлення скриня створює новий резонанс; раніше налаштовані кристали більше не працюють.",
+  "block.curiouschests.trappers_chest": "Скриня-ловець",
+  "container.curiouschests.trapper": "Скриня-ловець",
+  "tooltip.curiouschests.trapper.lore_1": "Мідна клітка, що наче ніколи не буває цілком порожньою.",
+  "tooltip.curiouschests.trapper.lore_2": "Істоти поруч відчувають потяг раніше, ніж бачать, як вона відкривається.",
+  "tooltip.curiouschests.trapper.ability": "Ловить до 9 істот у радіусі 5 блоків; натисни на спійману істоту в GUI, щоб випустити її."
 }

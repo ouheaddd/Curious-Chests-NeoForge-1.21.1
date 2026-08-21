@@ -47,6 +47,10 @@ public final class ModItems {
             "witchs_chest",
             properties -> new SpecialChestBlockItem(ModBlocks.WITCHS_CHEST.get(), ChestKind.WITCH, properties)
     );
+    public static final DeferredItem<SpecialChestBlockItem> TRAPPERS_CHEST_ITEM = ITEMS.registerItem(
+            "trappers_chest",
+            properties -> new SpecialChestBlockItem(ModBlocks.TRAPPERS_CHEST.get(), ChestKind.TRAPPER, properties)
+    );
     public static final DeferredItem<ResonanceCrystalItem> RESONANCE_CRYSTAL = ITEMS.registerItem(
             "resonance_crystal",
             ResonanceCrystalItem::new

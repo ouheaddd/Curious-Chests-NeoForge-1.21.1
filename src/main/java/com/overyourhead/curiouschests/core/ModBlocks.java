@@ -10,6 +10,7 @@ import com.overyourhead.curiouschests.common.block.InfernalChestBlock;
 import com.overyourhead.curiouschests.common.block.SculkSentinelChestBlock;
 import com.overyourhead.curiouschests.common.block.ResonantChestBlock;
 import com.overyourhead.curiouschests.common.block.WitchChestBlock;
+import com.overyourhead.curiouschests.common.block.TrapperChestBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -40,6 +41,11 @@ public final class ModBlocks {
     public static final DeferredBlock<ResonantChestBlock> RESONANT_CHEST = BLOCKS.registerBlock("resonant_chest", ResonantChestBlock::new, props().sound(SoundType.AMETHYST).lightLevel(state -> 5));
     public static final DeferredBlock<ArchivistChestBlock> ARCHIVISTS_CHEST = BLOCKS.registerBlock("archivists_chest", ArchivistChestBlock::new, props());
     public static final DeferredBlock<WitchChestBlock> WITCHS_CHEST = BLOCKS.registerBlock("witchs_chest", WitchChestBlock::new, props().lightLevel(state -> 6));
+    public static final DeferredBlock<TrapperChestBlock> TRAPPERS_CHEST = BLOCKS.registerBlock(
+            "trappers_chest",
+            TrapperChestBlock::new,
+            BlockBehaviour.Properties.ofFullCopy(Blocks.VAULT).noOcclusion().lightLevel(state -> state.hasProperty(TrapperChestBlock.OCCUPIED) && state.getValue(TrapperChestBlock.OCCUPIED) ? 4 : 0)
+    );
 
     private ModBlocks() {}
 }

@@ -71,5 +71,10 @@
   "tooltip.curiouschests.witch.ability": "通常・スプラッシュ・残留ポーションを保管し、同じポーションは16個まで重ねられる。",
   "gui.curiouschests.archivist.catalog_title": "アーキビストの索引",
   "gui.curiouschests.archivist.catalog_empty": "保存されているエンチャントはありません。",
-  "tooltip.curiouschests.resonant.rebind_hint": "チェストを置き直すと新しい共鳴が生まれ、以前に同調したクリスタルは使えなくなる。"
+  "tooltip.curiouschests.resonant.rebind_hint": "チェストを置き直すと新しい共鳴が生まれ、以前に同調したクリスタルは使えなくなる。",
+  "block.curiouschests.trappers_chest": "トラッパーのチェスト",
+  "container.curiouschests.trapper": "トラッパーのチェスト",
+  "tooltip.curiouschests.trapper.lore_1": "決して完全には空にならないように見える銅の檻。",
+  "tooltip.curiouschests.trapper.lore_2": "近くのモブは、蓋が開く前からその引力を感じる。",
+  "tooltip.curiouschests.trapper.ability": "5ブロック以内のモブを最大9体捕獲する。GUIで捕獲したモブをクリックすると解放できる。"
 }

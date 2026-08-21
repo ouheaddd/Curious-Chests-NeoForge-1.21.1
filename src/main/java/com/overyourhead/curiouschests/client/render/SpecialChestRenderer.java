@@ -29,6 +29,7 @@ import net.minecraft.client.renderer.blockentity.EnchantTableRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.Direction;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -104,6 +105,11 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
             int packedLight,
             int packedOverlay
     ) {
+        if (chest.kind() == ChestKind.TRAPPER) {
+            renderTrapperPreview(chest, partialTick, poseStack, bufferSource, packedLight);
+            return;
+        }
+
         BlockState state = chest.getBlockState();
         Direction facing = state.hasProperty(AbstractSpecialChestBlock.FACING)
                 ? state.getValue(AbstractSpecialChestBlock.FACING)
@@ -152,6 +158,45 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         if (chest.kind() == ChestKind.ARCHIVIST) {
             renderArchivistBook(chest, partialTick, poseStack, bufferSource, openness, packedLight);
         }
+    }
+
+
+    private void renderTrapperPreview(
+            SpecialChestBlockEntity chest,
+            float partialTick,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            int packedLight
+    ) {
+        Entity entity = chest.getTrapperPreviewEntity();
+        if (entity == null || chest.getLevel() == null) return;
+
+        float maxDimension = Math.max(0.7F, Math.max(entity.getBbWidth(), entity.getBbHeight()));
+        float scale = Mth.clamp(0.56F / maxDimension, 0.12F, 0.72F);
+        long gameTime = chest.getLevel().getGameTime();
+        float rotation = (gameTime + partialTick) * 2.2F;
+        float hover = Mth.sin((gameTime + partialTick) * 0.10F) * 0.025F;
+
+        poseStack.pushPose();
+        poseStack.translate(0.5F, 0.48F + hover, 0.5F);
+        poseStack.scale(scale, scale, scale);
+        poseStack.translate(0.0F, -entity.getBbHeight() * 0.5F, 0.0F);
+
+        var dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
+        dispatcher.setRenderShadow(false);
+        dispatcher.render(
+                entity,
+                0.0D,
+                0.0D,
+                0.0D,
+                rotation,
+                partialTick,
+                poseStack,
+                bufferSource,
+                LightTexture.FULL_BRIGHT
+        );
+        dispatcher.setRenderShadow(true);
+        poseStack.popPose();
     }
 
     private void renderEnderDispatchPreview(

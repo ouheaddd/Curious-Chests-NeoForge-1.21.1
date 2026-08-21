@@ -5,16 +5,26 @@ import com.overyourhead.curiouschests.common.chest.ChestKind;
 import com.overyourhead.curiouschests.common.menu.SpecialChestMenu;
 import com.overyourhead.curiouschests.common.network.RequestSentinelLogPayload;
 import com.overyourhead.curiouschests.common.network.SentinelLogPayload;
+import com.overyourhead.curiouschests.common.network.RequestTrapperContentsPayload;
+import com.overyourhead.curiouschests.common.network.ReleaseTrapperEntityPayload;
+import com.overyourhead.curiouschests.common.network.TrapperContentsPayload;
 import com.overyourhead.curiouschests.common.sentinel.SentinelLogEntry;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.PlayerFaceRenderer;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Inventory;
 import net.neoforged.neoforge.network.PacketDistributor;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -77,6 +87,14 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
     private static final int SENTINEL_LOG_HEIGHT = 186;
     private static final double LOG_OVERLAY_Z = 500.0D;
 
+    private static final int TRAPPER_ENTITY_SLOT_X = 8;
+    private static final int TRAPPER_ENTITY_SLOT_Y = 18;
+    private static final int TRAPPER_ENTITY_SLOT_SIZE = 18;
+    private static final int TRAPPER_ENTITY_SLOTS = 9;
+    private static final ResourceLocation TRAPPER_GUI_TEXTURE = ResourceLocation.withDefaultNamespace(
+            "textures/gui/container/generic_54.png"
+    );
+
     private static final ResourceLocation SENTINEL_BUTTON_TEXTURE = ResourceLocation.fromNamespaceAndPath(
             CuriousChestsMod.MOD_ID,
             "textures/gui/widget/sculk_log_button.png"
@@ -110,15 +128,21 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
     private long sentinelServerGameTime;
     private int sentinelLogRefreshTicks;
 
+    private List<CompoundTag> trapperEntityTags = List.of();
+    private final List<LivingEntity> trapperPreviewEntities = new ArrayList<>();
+    private int trapperRefreshTicks;
+
     public SpecialChestScreen(SpecialChestMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         imageWidth = menu.kind().screenWidth();
         imageHeight = menu.kind().screenHeight();
         inventoryLabelY = imageHeight - 94;
-        texture = ResourceLocation.fromNamespaceAndPath(
-                CuriousChestsMod.MOD_ID,
-                "textures/gui/container/" + menu.kind().id() + ".png"
-        );
+        texture = menu.kind() == ChestKind.TRAPPER
+                ? TRAPPER_GUI_TEXTURE
+                : ResourceLocation.fromNamespaceAndPath(
+                        CuriousChestsMod.MOD_ID,
+                        "textures/gui/container/" + menu.kind().id() + ".png"
+                );
     }
 
     @Override
@@ -133,23 +157,40 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
         if (menu.kind() == ChestKind.BUILDERS) {
             leftPos = (width - BUILDERS_BASE_WIDTH) / 2;
         }
+        if (menu.kind() == ChestKind.TRAPPER) {
+            trapperRefreshTicks = 0;
+            PacketDistributor.sendToServer(new RequestTrapperContentsPayload(menu.containerId));
+        }
     }
 
     @Override
     protected void containerTick() {
         super.containerTick();
-        if (menu.kind() != ChestKind.SCULK_SENTINEL || !sentinelLogOpen) return;
-
-        sentinelLogRefreshTicks++;
-        if (sentinelLogRefreshTicks >= 20) {
-            sentinelLogRefreshTicks = 0;
-            PacketDistributor.sendToServer(new RequestSentinelLogPayload(menu.containerId));
+        if (menu.kind() == ChestKind.SCULK_SENTINEL && sentinelLogOpen) {
+            sentinelLogRefreshTicks++;
+            if (sentinelLogRefreshTicks >= 20) {
+                sentinelLogRefreshTicks = 0;
+                PacketDistributor.sendToServer(new RequestSentinelLogPayload(menu.containerId));
+            }
+        }
+        if (menu.kind() == ChestKind.TRAPPER) {
+            trapperRefreshTicks++;
+            if (trapperRefreshTicks >= 20) {
+                trapperRefreshTicks = 0;
+                PacketDistributor.sendToServer(new RequestTrapperContentsPayload(menu.containerId));
+            }
         }
     }
 
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
-        if (menu.kind() == ChestKind.BUILDERS) {
+        if (menu.kind() == ChestKind.TRAPPER) {
+            // Vanilla one-row container assembled from generic_54. The nine top
+            // slots are visual entity cells, not ItemStack slots.
+            int creatureAreaHeight = 17 + 18;
+            graphics.blit(texture, leftPos, topPos, 0, 0, imageWidth, creatureAreaHeight);
+            graphics.blit(texture, leftPos, topPos + creatureAreaHeight, 0, 126, imageWidth, 96);
+        } else if (menu.kind() == ChestKind.BUILDERS) {
             graphics.blit(
                     texture,
                     leftPos,
@@ -306,6 +347,12 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
         // Normal chest page.
         super.render(graphics, mouseX, mouseY, partialTick);
 
+        if (menu.kind() == ChestKind.TRAPPER) {
+            renderTrapperEntities(graphics, mouseX, mouseY);
+            renderTooltip(graphics, mouseX, mouseY);
+            return;
+        }
+
         if (menu.kind() != ChestKind.SCULK_SENTINEL) {
             renderTooltip(graphics, mouseX, mouseY);
             return;
@@ -313,6 +360,62 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
 
         renderSentinelButton(graphics, mouseX, mouseY);
         renderTooltip(graphics, mouseX, mouseY);
+    }
+
+
+    private void renderTrapperEntities(GuiGraphics graphics, int mouseX, int mouseY) {
+        for (int index = 0; index < Math.min(TRAPPER_ENTITY_SLOTS, trapperPreviewEntities.size()); index++) {
+            LivingEntity entity = trapperPreviewEntities.get(index);
+            int x = leftPos + TRAPPER_ENTITY_SLOT_X + index * TRAPPER_ENTITY_SLOT_SIZE;
+            int y = topPos + TRAPPER_ENTITY_SLOT_Y;
+            float maxDimension = Math.max(0.6F, Math.max(entity.getBbWidth(), entity.getBbHeight()));
+            int scale = Mth.clamp((int) (15.0F / maxDimension), 4, 14);
+
+            InventoryScreen.renderEntityInInventoryFollowsMouse(
+                    graphics,
+                    x + 1,
+                    y + 1,
+                    x + 17,
+                    y + 17,
+                    scale,
+                    0.0F,
+                    mouseX,
+                    mouseY,
+                    entity
+            );
+        }
+
+        int hovered = trapperEntitySlotAt(mouseX, mouseY);
+        if (hovered >= 0 && hovered < trapperPreviewEntities.size()) {
+            LivingEntity entity = trapperPreviewEntities.get(hovered);
+            graphics.renderTooltip(font, entity.getDisplayName(), mouseX, mouseY);
+        }
+    }
+
+    private int trapperEntitySlotAt(double mouseX, double mouseY) {
+        int localX = (int) mouseX - leftPos - TRAPPER_ENTITY_SLOT_X;
+        int localY = (int) mouseY - topPos - TRAPPER_ENTITY_SLOT_Y;
+        if (localX < 0 || localY < 0 || localY >= TRAPPER_ENTITY_SLOT_SIZE) return -1;
+        int slot = localX / TRAPPER_ENTITY_SLOT_SIZE;
+        if (slot < 0 || slot >= TRAPPER_ENTITY_SLOTS) return -1;
+        int within = localX % TRAPPER_ENTITY_SLOT_SIZE;
+        return within < TRAPPER_ENTITY_SLOT_SIZE ? slot : -1;
+    }
+
+    public void applyTrapperContents(TrapperContentsPayload payload) {
+        if (payload.containerId() != menu.containerId || menu.kind() != ChestKind.TRAPPER) return;
+        if (trapperEntityTags.equals(payload.entities())) return;
+        trapperEntityTags = payload.entities();
+        trapperPreviewEntities.clear();
+        if (minecraft == null || minecraft.level == null) return;
+
+        for (CompoundTag tag : trapperEntityTags) {
+            Entity loaded = EntityType.loadEntityRecursive(tag.copy(), minecraft.level, entity -> entity);
+            if (loaded instanceof LivingEntity living) {
+                living.setCustomNameVisible(false);
+                trapperPreviewEntities.add(living);
+            }
+        }
     }
 
     private void renderSentinelButton(GuiGraphics graphics, int mouseX, int mouseY) {
@@ -467,6 +570,14 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (menu.kind() == ChestKind.TRAPPER && (button == 0 || button == 1)) {
+            int slot = trapperEntitySlotAt(mouseX, mouseY);
+            if (slot >= 0 && slot < trapperEntityTags.size()) {
+                PacketDistributor.sendToServer(new ReleaseTrapperEntityPayload(menu.containerId, slot));
+                return true;
+            }
+        }
+
         if (menu.kind() == ChestKind.SCULK_SENTINEL
                 && button == 0
                 && inside(

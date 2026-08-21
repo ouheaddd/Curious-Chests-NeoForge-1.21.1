@@ -71,5 +71,10 @@
   "tooltip.curiouschests.witch.ability": "Przechowuje mikstury do picia, miotane i trwałe; identyczne mikstury układają się do 16.",
   "gui.curiouschests.archivist.catalog_title": "Indeks Archiwisty",
   "gui.curiouschests.archivist.catalog_empty": "Brak przechowywanych zaklęć.",
-  "tooltip.curiouschests.resonant.rebind_hint": "Ponowne postawienie skrzyni tworzy nowy rezonans; wcześniej dostrojone kryształy przestają działać."
+  "tooltip.curiouschests.resonant.rebind_hint": "Ponowne postawienie skrzyni tworzy nowy rezonans; wcześniej dostrojone kryształy przestają działać.",
+  "block.curiouschests.trappers_chest": "Skrzynia łapacza",
+  "container.curiouschests.trapper": "Skrzynia łapacza",
+  "tooltip.curiouschests.trapper.lore_1": "Miedziana klatka, która nigdy nie wydaje się całkiem pusta.",
+  "tooltip.curiouschests.trapper.lore_2": "Pobliskie stworzenia czują przyciąganie, zanim zobaczą, jak się otwiera.",
+  "tooltip.curiouschests.trapper.ability": "Łapie do 9 stworzeń w promieniu 5 bloków; kliknij stworzenie w GUI, aby je wypuścić."
 }

@@ -71,5 +71,10 @@
   "tooltip.curiouschests.witch.ability": "Lagert trinkbare, Wurf- und Verweiltränke; gleiche Tränke sind bis 16 stapelbar.",
   "gui.curiouschests.archivist.catalog_title": "Index des Archivars",
   "gui.curiouschests.archivist.catalog_empty": "Keine Verzauberungen gelagert.",
-  "tooltip.curiouschests.resonant.rebind_hint": "Beim erneuten Platzieren entsteht eine neue Resonanz; zuvor eingestimmte Kristalle funktionieren nicht mehr."
+  "tooltip.curiouschests.resonant.rebind_hint": "Beim erneuten Platzieren entsteht eine neue Resonanz; zuvor eingestimmte Kristalle funktionieren nicht mehr.",
+  "block.curiouschests.trappers_chest": "Fängertruhe",
+  "container.curiouschests.trapper": "Fängertruhe",
+  "tooltip.curiouschests.trapper.lore_1": "Ein Kupferkäfig, der nie ganz leer zu sein scheint.",
+  "tooltip.curiouschests.trapper.lore_2": "Kreaturen in der Nähe spüren den Sog, bevor sie ihn öffnen sehen.",
+  "tooltip.curiouschests.trapper.ability": "Fängt bis zu 9 Kreaturen im Umkreis von 5 Blöcken; klicke im GUI auf eine Kreatur, um sie freizulassen."
 }

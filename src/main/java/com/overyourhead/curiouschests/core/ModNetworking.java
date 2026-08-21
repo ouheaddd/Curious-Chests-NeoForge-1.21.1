@@ -2,12 +2,16 @@ package com.overyourhead.curiouschests.core;
 
 import com.overyourhead.curiouschests.client.network.ClientArchivistCatalogHandler;
 import com.overyourhead.curiouschests.client.network.ClientSentinelLogHandler;
+import com.overyourhead.curiouschests.client.network.ClientTrapperContentsHandler;
 import com.overyourhead.curiouschests.common.blockentity.SpecialChestBlockEntity;
 import com.overyourhead.curiouschests.common.chest.ChestKind;
 import com.overyourhead.curiouschests.common.menu.SpecialChestMenu;
 import com.overyourhead.curiouschests.common.network.ArchivistCatalogPayload;
 import com.overyourhead.curiouschests.common.network.RequestSentinelLogPayload;
 import com.overyourhead.curiouschests.common.network.SentinelLogPayload;
+import com.overyourhead.curiouschests.common.network.RequestTrapperContentsPayload;
+import com.overyourhead.curiouschests.common.network.ReleaseTrapperEntityPayload;
+import com.overyourhead.curiouschests.common.network.TrapperContentsPayload;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -18,8 +22,8 @@ public final class ModNetworking {
     private ModNetworking() {}
 
     public static void register(RegisterPayloadHandlersEvent event) {
-        // Sentinel log entries now include an attempt counter, so reject clients using the old payload layout.
-        PayloadRegistrar registrar = event.registrar("2");
+        // Protocol 3 adds Trapper creature-storage request/release/content packets.
+        PayloadRegistrar registrar = event.registrar("3");
         registrar.playToServer(
                 RequestSentinelLogPayload.TYPE,
                 RequestSentinelLogPayload.STREAM_CODEC,
@@ -34,6 +38,54 @@ public final class ModNetworking {
                 ArchivistCatalogPayload.TYPE,
                 ArchivistCatalogPayload.STREAM_CODEC,
                 ClientArchivistCatalogHandler::handle
+        );
+        registrar.playToServer(
+                RequestTrapperContentsPayload.TYPE,
+                RequestTrapperContentsPayload.STREAM_CODEC,
+                ModNetworking::handleTrapperContentsRequest
+        );
+        registrar.playToServer(
+                ReleaseTrapperEntityPayload.TYPE,
+                ReleaseTrapperEntityPayload.STREAM_CODEC,
+                ModNetworking::handleTrapperRelease
+        );
+        registrar.playToClient(
+                TrapperContentsPayload.TYPE,
+                TrapperContentsPayload.STREAM_CODEC,
+                ClientTrapperContentsHandler::handle
+        );
+    }
+
+    private static void handleTrapperContentsRequest(
+            RequestTrapperContentsPayload payload,
+            IPayloadContext context
+    ) {
+        if (!(context.player() instanceof ServerPlayer player)) return;
+        if (!(player.containerMenu instanceof SpecialChestMenu menu)) return;
+        if (menu.containerId != payload.containerId() || menu.kind() != ChestKind.TRAPPER) return;
+        SpecialChestBlockEntity chest = menu.blockEntity();
+        if (chest == null) return;
+        sendTrapperContents(player, menu, chest);
+    }
+
+    private static void handleTrapperRelease(
+            ReleaseTrapperEntityPayload payload,
+            IPayloadContext context
+    ) {
+        if (!(context.player() instanceof ServerPlayer player)) return;
+        if (!(player.containerMenu instanceof SpecialChestMenu menu)) return;
+        if (menu.containerId != payload.containerId() || menu.kind() != ChestKind.TRAPPER) return;
+        SpecialChestBlockEntity chest = menu.blockEntity();
+        if (chest == null) return;
+        if (chest.releaseTrappedEntity(player.serverLevel(), payload.index())) {
+            sendTrapperContents(player, menu, chest);
+        }
+    }
+
+    private static void sendTrapperContents(ServerPlayer player, SpecialChestMenu menu, SpecialChestBlockEntity chest) {
+        PacketDistributor.sendToPlayer(
+                player,
+                new TrapperContentsPayload(menu.containerId, chest.getTrappedEntityTags())
         );
     }
 

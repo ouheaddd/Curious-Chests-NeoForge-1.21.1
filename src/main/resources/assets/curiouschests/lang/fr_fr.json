@@ -71,5 +71,10 @@
   "tooltip.curiouschests.witch.ability": "Stocke les potions à boire, jetables et persistantes ; les potions identiques s’empilent jusqu’à 16.",
   "gui.curiouschests.archivist.catalog_title": "Index de l’Archiviste",
   "gui.curiouschests.archivist.catalog_empty": "Aucun enchantement stocké.",
-  "tooltip.curiouschests.resonant.rebind_hint": "Replacer le coffre crée une nouvelle résonance ; les cristaux accordés auparavant ne fonctionnent plus."
+  "tooltip.curiouschests.resonant.rebind_hint": "Replacer le coffre crée une nouvelle résonance ; les cristaux accordés auparavant ne fonctionnent plus.",
+  "block.curiouschests.trappers_chest": "Coffre du piégeur",
+  "container.curiouschests.trapper": "Coffre du piégeur",
+  "tooltip.curiouschests.trapper.lore_1": "Une cage de cuivre qui ne semble jamais vraiment vide.",
+  "tooltip.curiouschests.trapper.lore_2": "Les créatures proches sentent l'attraction avant de le voir s'ouvrir.",
+  "tooltip.curiouschests.trapper.ability": "Capture jusqu'à 9 créatures dans un rayon de 5 blocs ; cliquez sur une créature dans l'interface pour la libérer."
 }

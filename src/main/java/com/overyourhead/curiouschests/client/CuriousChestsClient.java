@@ -118,6 +118,7 @@ public final class CuriousChestsClient {
             event.register(ModMenus.RESONANT.get(), SpecialChestScreen::new);
             event.register(ModMenus.ARCHIVIST.get(), SpecialChestScreen::new);
             event.register(ModMenus.WITCH.get(), SpecialChestScreen::new);
+            event.register(ModMenus.TRAPPER.get(), SpecialChestScreen::new);
         }
     }
 }

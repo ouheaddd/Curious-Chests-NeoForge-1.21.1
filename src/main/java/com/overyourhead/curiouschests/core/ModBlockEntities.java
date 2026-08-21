@@ -19,7 +19,8 @@ public final class ModBlockEntities {
             ModBlocks.SCULK_SENTINEL_CHEST.get(),
             ModBlocks.RESONANT_CHEST.get(),
             ModBlocks.ARCHIVISTS_CHEST.get(),
-            ModBlocks.WITCHS_CHEST.get()
+            ModBlocks.WITCHS_CHEST.get(),
+            ModBlocks.TRAPPERS_CHEST.get()
     ).build(null));
     private ModBlockEntities() {}
 }

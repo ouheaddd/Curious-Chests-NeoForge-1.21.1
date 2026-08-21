@@ -71,5 +71,10 @@
   "tooltip.curiouschests.witch.ability": "일반, 투척용, 잔류형 물약을 보관하며 같은 물약은 16개까지 쌓입니다.",
   "gui.curiouschests.archivist.catalog_title": "기록관의 색인",
   "gui.curiouschests.archivist.catalog_empty": "저장된 마법 부여가 없습니다.",
-  "tooltip.curiouschests.resonant.rebind_hint": "상자를 다시 설치하면 새로운 공명이 생성되며, 이전에 조율된 수정은 더 이상 작동하지 않습니다."
+  "tooltip.curiouschests.resonant.rebind_hint": "상자를 다시 설치하면 새로운 공명이 생성되며, 이전에 조율된 수정은 더 이상 작동하지 않습니다.",
+  "block.curiouschests.trappers_chest": "포획자의 상자",
+  "container.curiouschests.trapper": "포획자의 상자",
+  "tooltip.curiouschests.trapper.lore_1": "완전히 비어 있는 법이 없는 듯한 구리 우리입니다.",
+  "tooltip.curiouschests.trapper.lore_2": "주변 생물은 상자가 열리기 전부터 끌어당기는 힘을 느낍니다.",
+  "tooltip.curiouschests.trapper.ability": "5블록 안의 생물을 최대 9마리 포획합니다. GUI에서 포획된 생물을 클릭하면 풀어줍니다."
 }

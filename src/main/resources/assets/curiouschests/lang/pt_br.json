@@ -71,5 +71,10 @@
   "tooltip.curiouschests.witch.ability": "Armazena poções bebíveis, arremessáveis e prolongadas; poções iguais empilham até 16.",
   "gui.curiouschests.archivist.catalog_title": "Índice do Arquivista",
   "gui.curiouschests.archivist.catalog_empty": "Nenhum encantamento armazenado.",
-  "tooltip.curiouschests.resonant.rebind_hint": "Reposicionar o baú cria uma nova ressonância; cristais sintonizados anteriormente deixam de funcionar."
+  "tooltip.curiouschests.resonant.rebind_hint": "Reposicionar o baú cria uma nova ressonância; cristais sintonizados anteriormente deixam de funcionar.",
+  "block.curiouschests.trappers_chest": "Baú de Captura",
+  "container.curiouschests.trapper": "Baú de Captura",
+  "tooltip.curiouschests.trapper.lore_1": "Uma gaiola de cobre que nunca parece totalmente vazia.",
+  "tooltip.curiouschests.trapper.lore_2": "Criaturas próximas sentem a atração antes de vê-lo abrir.",
+  "tooltip.curiouschests.trapper.ability": "Captura até 9 criaturas em um raio de 5 blocos; clique em uma criatura na interface para soltá-la."
 }

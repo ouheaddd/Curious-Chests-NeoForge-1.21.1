@@ -71,5 +71,10 @@
   "tooltip.curiouschests.witch.ability": "Stores drinkable, splash and lingering potions; matching potions stack to 16.",
   "gui.curiouschests.archivist.catalog_title": "Archivist's Index",
   "gui.curiouschests.archivist.catalog_empty": "No enchantments stored.",
-  "tooltip.curiouschests.resonant.rebind_hint": "Replacing the chest creates a new resonance; previously attuned crystals no longer work."
+  "tooltip.curiouschests.resonant.rebind_hint": "Replacing the chest creates a new resonance; previously attuned crystals no longer work.",
+  "block.curiouschests.trappers_chest": "Trapper's Chest",
+  "container.curiouschests.trapper": "Trapper's Chest",
+  "tooltip.curiouschests.trapper.lore_1": "A copper cage that is never quite empty.",
+  "tooltip.curiouschests.trapper.lore_2": "Nearby creatures feel the pull before they see it open.",
+  "tooltip.curiouschests.trapper.ability": "Captures up to 9 nearby creatures within 5 blocks; click a captured creature in the GUI to release it."
 }
