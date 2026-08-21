@@ -45,6 +45,29 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
     private static final int BUILDERS_CRAFT_PANEL_WIDTH = 80;
     private static final int BUILDERS_CRAFT_PANEL_HEIGHT = 116;
 
+    // Per-GUI label tuning. These are intentionally kept as simple pixel
+    // offsets/colors so the redesigned textures can be fine-tuned later.
+    private static final int BUILDERS_LABEL_OFFSET_X = 1;
+    private static final int BUILDERS_INVENTORY_LABEL_OFFSET_Y = -2;
+    private static final int BUILDERS_LABEL_COLOR = 0xF2F2E8; // warm off-white main text
+    private static final int BUILDERS_LABEL_SHADOW_COLOR = 0x555752; // darker stone-gray custom shadow
+
+    private static final int COLLECTORS_LABEL_OFFSET_X = 0;
+    private static final int COLLECTORS_LABEL_OFFSET_Y = -1;
+    private static final int COLLECTORS_LABEL_COLOR = 0xE6D6A8; // birch-like beige
+    private static final int COLLECTORS_LABEL_SHADOW_COLOR = 0x555752; // dark stone-gray custom shadow
+
+    private static final int ARCHIVIST_LABEL_COLOR = 0xE1BC73; // warm beige/gold
+    private static final int ARCHIVIST_LABEL_SHADOW_COLOR = 0x8A6428; // dark warm-gold custom shadow
+    private static final int ARCHIVIST_TITLE_OFFSET_Y = 1;
+    private static final int ARCHIVIST_INVENTORY_LABEL_OFFSET_Y = -1;
+
+    private static final int WITCH_LABEL_COLOR = 0xC58BEA; // potion-like light purple
+    // Move the complete Witch GUI content block together over the redesigned art.
+    private static final int WITCH_CONTENT_OFFSET_X = 16;
+    private static final int WITCH_CONTENT_OFFSET_Y = 16;
+    private static final int WITCH_INVENTORY_LABEL_Y = 128;
+
     private static final int LOG_ROWS_VISIBLE = 5;
     private static final int LOG_FIRST_ROW_Y = 34;
     private static final int LOG_ROW_HEIGHT = 27;
@@ -198,33 +221,93 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
             return;
         }
 
+        if (menu.kind() == ChestKind.BUILDERS) {
+            int buildersTitleX = titleLabelX + BUILDERS_LABEL_OFFSET_X;
+            int buildersTitleY = titleLabelY;
+            int buildersInventoryX = inventoryLabelX + BUILDERS_LABEL_OFFSET_X;
+            int buildersInventoryY = inventoryLabelY + BUILDERS_INVENTORY_LABEL_OFFSET_Y;
+
+            // Use a custom light-gray shadow instead of Minecraft's default dark shadow.
+            graphics.drawString(font, title, buildersTitleX + 1, buildersTitleY + 1, BUILDERS_LABEL_SHADOW_COLOR, false);
+            graphics.drawString(font, title, buildersTitleX, buildersTitleY, BUILDERS_LABEL_COLOR, false);
+            graphics.drawString(font, playerInventoryTitle, buildersInventoryX + 1, buildersInventoryY + 1, BUILDERS_LABEL_SHADOW_COLOR, false);
+            graphics.drawString(font, playerInventoryTitle, buildersInventoryX, buildersInventoryY, BUILDERS_LABEL_COLOR, false);
+            return;
+        }
+
+        if (menu.kind() == ChestKind.COLLECTORS) {
+            Component collectorsTitle = Component.translatable("gui.curiouschests.collectors.title");
+            int collectorsTitleX = titleLabelX + COLLECTORS_LABEL_OFFSET_X;
+            int collectorsInventoryX = inventoryLabelX + COLLECTORS_LABEL_OFFSET_X;
+            int collectorsTitleY = titleLabelY + COLLECTORS_LABEL_OFFSET_Y;
+            int collectorsInventoryY = inventoryLabelY + COLLECTORS_LABEL_OFFSET_Y;
+
+            graphics.drawString(font, collectorsTitle, collectorsTitleX + 1, collectorsTitleY + 1, COLLECTORS_LABEL_SHADOW_COLOR, false);
+            graphics.drawString(font, collectorsTitle, collectorsTitleX, collectorsTitleY, COLLECTORS_LABEL_COLOR, false);
+            graphics.drawString(font, playerInventoryTitle, collectorsInventoryX + 1, collectorsInventoryY + 1, COLLECTORS_LABEL_SHADOW_COLOR, false);
+            graphics.drawString(font, playerInventoryTitle, collectorsInventoryX, collectorsInventoryY, COLLECTORS_LABEL_COLOR, false);
+            return;
+        }
+
+        if (menu.kind() == ChestKind.ARCHIVIST) {
+            Component archivistTitle = Component.translatable("gui.curiouschests.archivist.title");
+            int archivistTitleY = titleLabelY + ARCHIVIST_TITLE_OFFSET_Y;
+            int archivistInventoryY = inventoryLabelY + ARCHIVIST_INVENTORY_LABEL_OFFSET_Y;
+
+            graphics.drawString(font, archivistTitle, titleLabelX + 1, archivistTitleY + 1, ARCHIVIST_LABEL_SHADOW_COLOR, false);
+            graphics.drawString(font, archivistTitle, titleLabelX, archivistTitleY, ARCHIVIST_LABEL_COLOR, false);
+            graphics.drawString(font, playerInventoryTitle, inventoryLabelX + 1, archivistInventoryY + 1, ARCHIVIST_LABEL_SHADOW_COLOR, false);
+            graphics.drawString(font, playerInventoryTitle, inventoryLabelX, archivistInventoryY, ARCHIVIST_LABEL_COLOR, false);
+            return;
+        }
+
+        if (menu.kind() == ChestKind.WITCH) {
+            graphics.drawString(
+                    font,
+                    title,
+                    titleLabelX + WITCH_CONTENT_OFFSET_X,
+                    titleLabelY + WITCH_CONTENT_OFFSET_Y,
+                    WITCH_LABEL_COLOR,
+                    false
+            );
+            graphics.drawString(
+                    font,
+                    playerInventoryTitle,
+                    inventoryLabelX + WITCH_CONTENT_OFFSET_X,
+                    WITCH_INVENTORY_LABEL_Y + WITCH_CONTENT_OFFSET_Y,
+                    WITCH_LABEL_COLOR,
+                    false
+            );
+            return;
+        }
+
         graphics.drawString(font, title, titleLabelX, titleLabelY, 0x404040, false);
         graphics.drawString(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0x404040, false);
     }
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        // Let the normal container screen perform its single vanilla background
-        // pass. The menu stays open while the owner views the intrusion page.
-        super.render(graphics, mouseX, mouseY, partialTick);
-
-        if (menu.kind() != ChestKind.SCULK_SENTINEL) {
-            renderTooltip(graphics, mouseX, mouseY);
-            return;
-        }
-
-        if (sentinelLogOpen) {
-            // Item icons are submitted through a different GUI render buffer than
-            // textured panels. Flush those commands first, then draw the opaque log
-            // page at a higher Z layer. This prevents chest, inventory, hotbar and
-            // carried items from appearing above the intrusion page.
-            graphics.flush();
+        // The log page has its own dimensions (176 x 186), while the redesigned
+        // Sculk Sentinel container is 190 x 192. When the log is open, render it
+        // directly instead of rendering the chest first and covering the size
+        // mismatch with an opaque rectangle. This removes the black side/top/bottom
+        // bands and also guarantees hidden slots/items cannot bleed through.
+        if (menu.kind() == ChestKind.SCULK_SENTINEL && sentinelLogOpen) {
+            renderBackground(graphics, mouseX, mouseY, partialTick);
             graphics.pose().pushPose();
             graphics.pose().translate(0.0D, 0.0D, LOG_OVERLAY_Z);
             renderSentinelLog(graphics);
             renderSentinelButton(graphics, mouseX, mouseY);
             graphics.pose().popPose();
             graphics.flush();
+            return;
+        }
+
+        // Normal chest page.
+        super.render(graphics, mouseX, mouseY, partialTick);
+
+        if (menu.kind() != ChestKind.SCULK_SENTINEL) {
+            renderTooltip(graphics, mouseX, mouseY);
             return;
         }
 
@@ -263,12 +346,11 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
     }
 
     private void renderSentinelLog(GuiGraphics graphics) {
-        // The chest GUI is now 190 x 192, while the existing intrusion-log art is 176 x 186.
-        // Cover the whole resized container first, then center the old log panel inside it so
-        // hidden slots/items cannot bleed through the newly exposed border area.
+        // The log has its own 176 x 186 art and is centered independently inside
+        // the 190 x 192 Sculk screen anchor. The normal container is not rendered
+        // underneath while this page is open, so no opaque size-mismatch filler is needed.
         int logLeft = sentinelLogLeft();
         int logTop = sentinelLogTop();
-        graphics.fill(leftPos, topPos, leftPos + imageWidth, topPos + imageHeight, 0xFF071311);
         graphics.blit(
                 SENTINEL_LOG_TEXTURE,
                 logLeft,
@@ -279,13 +361,13 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
                 SENTINEL_LOG_HEIGHT
         );
 
-        graphics.drawCenteredString(
-                font,
-                Component.translatable("gui.curiouschests.sculk_sentinel.log_title"),
-                logLeft + SENTINEL_LOG_WIDTH / 2,
-                logTop + 10,
-                0xD8E6E0
-        );
+        Component logTitle = Component.translatable("gui.curiouschests.sculk_sentinel.log_title");
+        int logTitleX = logLeft + (SENTINEL_LOG_WIDTH - font.width(logTitle)) / 2;
+        int logTitleY = logTop + 20;
+        // Draw the title shadow ourselves so it can use a neutral gray instead
+        // of Minecraft's default dark text shadow.
+        graphics.drawString(font, logTitle, logTitleX + 1, logTitleY + 1, 0x6F6F6F, false);
+        graphics.drawString(font, logTitle, logTitleX, logTitleY, 0x2E5552, false);
 
         if (sentinelLogLoading) {
             graphics.drawCenteredString(
@@ -314,7 +396,7 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
         int logTop = sentinelLogTop();
         for (int index = 0; index < visible; index++) {
             int y = logTop + LOG_FIRST_ROW_Y + index * LOG_ROW_HEIGHT;
-            renderSentinelLogEntry(graphics, sentinelLogEntries.get(index), logLeft + 8, y);
+            renderSentinelLogEntry(graphics, sentinelLogEntries.get(index), logLeft + 6, y);
         }
     }
 
@@ -336,28 +418,28 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
 
         PlayerInfo info = playerInfo(entry);
         if (info != null) {
-            PlayerFaceRenderer.draw(graphics, info.getSkin(), x + 4, y + 3, 18);
+            PlayerFaceRenderer.draw(graphics, info.getSkin(), x + 8, y + 5, 18);
         } else {
-            graphics.fill(x + 4, y + 3, x + 22, y + 21, 0xFF163934);
+            graphics.fill(x + 8, y + 5, x + 26, y + 23, 0xFF163934);
             String initial = entry.playerName().isBlank()
                     ? "?"
                     : entry.playerName().substring(0, 1).toUpperCase(Locale.ROOT);
-            graphics.drawCenteredString(font, initial, x + 13, y + 8, 0xD8E6E0);
+            graphics.drawCenteredString(font, initial, x + 17, y + 10, 0xD8E6E0);
         }
 
-        // Keep the existing card art and avatar fixed; only move the two text
-        // baselines down by one pixel for better optical centering.
-        graphics.drawString(font, trim(entry.playerName(), 83), x + 29, y + 3, 0xE3ECE8, false);
+        // Keep the action baseline where it is; the nickname is nudged two pixels
+        // lower to match the redesigned row art.
+        graphics.drawString(font, trim(entry.playerName(), 83), x + 29, y + 5, 0x315D59, false);
         long seconds = Math.max(0L, (sentinelServerGameTime - entry.gameTime()) / 20L);
         Component ago = formatSentinelAge(seconds);
-        int agoX = sentinelLogLeft() + SENTINEL_LOG_WIDTH - 10 - font.width(ago);
+        int agoX = sentinelLogLeft() + SENTINEL_LOG_WIDTH - 13 - font.width(ago);
 
         Component action = Component.translatable(
                 "gui.curiouschests.sculk_sentinel.action." + entry.action().name().toLowerCase(Locale.ROOT)
         );
         String actionText = (entry.attempts() > 1 ? "×" + entry.attempts() + " " : "") + action.getString();
         int actionWidth = Math.max(0, agoX - (x + 29) - 4);
-        graphics.drawString(font, trim(actionText, actionWidth), x + 29, y + 13, 0x9DB3AD, false);
+        graphics.drawString(font, trim(actionText, actionWidth), x + 29, y + 13, 0x52736E, false);
         graphics.drawString(font, ago, agoX, y + 13, 0x657D77, false);
     }
 

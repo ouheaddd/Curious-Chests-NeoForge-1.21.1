@@ -70,6 +70,16 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
     private static final int RESONANT_HOTBAR_OFFSET_X = 8;
     private static final int RESONANT_HOTBAR_OFFSET_Y = 20;
 
+    // Builder's redesigned player inventory artwork sits two pixels above the
+    // old slot positions. Keep chest/crafting/hotbar slots untouched and move
+    // only the three-row player inventory grid to match the texture.
+    private static final int BUILDERS_INVENTORY_OFFSET_Y = -2;
+
+    // Witch's redesigned 209x243 artwork shifts the complete interactive/content
+    // block together: chest slots, player inventory and hotbar.
+    private static final int WITCH_CONTENT_OFFSET_X = 16;
+    private static final int WITCH_CONTENT_OFFSET_Y = 16;
+
     // Resonance Crystal uses its own attached widget at the top-right.
     private static final int RESONANT_CRYSTAL_SLOT_X = 195;
     private static final int RESONANT_CRYSTAL_SLOT_Y = 18;
@@ -252,7 +262,12 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
                 int slotIndex = slot;
                 int column = slotIndex % 9;
                 int row = slotIndex / 9;
-                addSlot(new Slot(container, slotIndex, 8 + column * 18, 18 + row * 18) {
+                addSlot(new Slot(
+                        container,
+                        slotIndex,
+                        8 + column * 18 + WITCH_CONTENT_OFFSET_X,
+                        18 + row * 18 + WITCH_CONTENT_OFFSET_Y
+                ) {
                     @Override
                     public boolean mayPlace(ItemStack stack) {
                         return WitchLogic.isSupported(stack)
@@ -362,6 +377,7 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
             case ENDER_DISPATCH -> ENDER_DISPATCH_INVENTORY_OFFSET_X;
             case SCULK_SENTINEL -> SCULK_SENTINEL_INVENTORY_OFFSET_X;
             case RESONANT -> RESONANT_INVENTORY_OFFSET_X;
+            case WITCH -> WITCH_CONTENT_OFFSET_X;
             default -> 0;
         };
     }
@@ -371,6 +387,8 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
             case ENDER_DISPATCH -> ENDER_DISPATCH_INVENTORY_OFFSET_Y;
             case SCULK_SENTINEL -> SCULK_SENTINEL_INVENTORY_OFFSET_Y;
             case RESONANT -> RESONANT_INVENTORY_OFFSET_Y;
+            case BUILDERS -> BUILDERS_INVENTORY_OFFSET_Y;
+            case WITCH -> WITCH_CONTENT_OFFSET_Y;
             default -> 0;
         };
     }
@@ -380,6 +398,7 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
             case ENDER_DISPATCH -> ENDER_DISPATCH_HOTBAR_OFFSET_X;
             case SCULK_SENTINEL -> SCULK_SENTINEL_HOTBAR_OFFSET_X;
             case RESONANT -> RESONANT_HOTBAR_OFFSET_X;
+            case WITCH -> WITCH_CONTENT_OFFSET_X;
             default -> 0;
         };
     }
@@ -389,6 +408,7 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
             case ENDER_DISPATCH -> ENDER_DISPATCH_HOTBAR_OFFSET_Y;
             case SCULK_SENTINEL -> SCULK_SENTINEL_HOTBAR_OFFSET_Y;
             case RESONANT -> RESONANT_HOTBAR_OFFSET_Y;
+            case WITCH -> WITCH_CONTENT_OFFSET_Y;
             default -> 0;
         };
     }

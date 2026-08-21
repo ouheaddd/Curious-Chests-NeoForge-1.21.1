@@ -32,7 +32,7 @@ public final class SentinelLogScreen extends Screen {
     private static final int ROWS_VISIBLE = 5;
     private static final int FIRST_ROW_Y = 34;
     private static final int ROW_HEIGHT = 27;
-    private static final int TIME_X = 153;
+    private static final int TIME_X = 150;
 
     private static final ResourceLocation LOG_TEXTURE = ResourceLocation.fromNamespaceAndPath(
             CuriousChestsMod.MOD_ID,
@@ -89,13 +89,11 @@ public final class SentinelLogScreen extends Screen {
         renderBackground(graphics, mouseX, mouseY, partialTick);
         graphics.blit(LOG_TEXTURE, leftPos, topPos, 0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
 
-        graphics.drawCenteredString(
-                font,
-                title,
-                leftPos + IMAGE_WIDTH / 2,
-                topPos + 10,
-                0xD8E6E0
-        );
+        int logTitleX = leftPos + (IMAGE_WIDTH - font.width(title)) / 2;
+        int logTitleY = topPos + 20;
+        // Match the in-container log: neutral gray custom shadow plus teal title.
+        graphics.drawString(font, title, logTitleX + 1, logTitleY + 1, 0x6F6F6F, false);
+        graphics.drawString(font, title, logTitleX, logTitleY, 0x2E5552, false);
 
         if (loading) {
             graphics.drawCenteredString(
@@ -126,7 +124,7 @@ public final class SentinelLogScreen extends Screen {
         for (int index = scroll; index < end; index++) {
             int visibleIndex = index - scroll;
             int y = topPos + FIRST_ROW_Y + visibleIndex * ROW_HEIGHT;
-            renderEntry(graphics, entries.get(index), leftPos + 12, y);
+            renderEntry(graphics, entries.get(index), leftPos + 10, y);
         }
 
         if (entries.size() > ROWS_VISIBLE) {
@@ -145,18 +143,18 @@ public final class SentinelLogScreen extends Screen {
     private void renderEntry(GuiGraphics graphics, SentinelLogEntry entry, int x, int y) {
         PlayerInfo info = playerInfo(entry);
         if (info != null) {
-            PlayerFaceRenderer.draw(graphics, info.getSkin(), x, y + 3, 18);
+            PlayerFaceRenderer.draw(graphics, info.getSkin(), x + 4, y + 5, 18);
         } else {
-            graphics.fill(x, y + 3, x + 18, y + 21, 0xFF163934);
+            graphics.fill(x + 4, y + 5, x + 22, y + 23, 0xFF163934);
             String initial = entry.playerName().isBlank()
                     ? "?"
                     : entry.playerName().substring(0, 1).toUpperCase(Locale.ROOT);
-            graphics.drawCenteredString(font, initial, x + 9, y + 8, 0xD8E6E0);
+            graphics.drawCenteredString(font, initial, x + 13, y + 10, 0xD8E6E0);
         }
 
-        // Text sits one pixel lower than before so both lines are optically
-        // centered inside the existing row art. The avatar/texture is untouched.
-        graphics.drawString(font, trim(entry.playerName(), 124), x + 25, y + 3, 0xE3ECE8, false);
+        // The nickname is nudged two pixels lower to match the redesigned row art.
+        // The action baseline stays unchanged.
+        graphics.drawString(font, trim(entry.playerName(), 124), x + 25, y + 5, 0x315D59, false);
         long seconds = Math.max(0L, (serverGameTime - entry.gameTime()) / 20L);
         Component ago = formatAge(seconds);
         int agoX = leftPos + TIME_X;
@@ -166,7 +164,7 @@ public final class SentinelLogScreen extends Screen {
         );
         String actionText = (entry.attempts() > 1 ? "×" + entry.attempts() + " " : "") + action.getString();
         int actionWidth = Math.max(0, agoX - (x + 25) - 4);
-        graphics.drawString(font, trim(actionText, actionWidth), x + 25, y + 13, 0x9DB3AD, false);
+        graphics.drawString(font, trim(actionText, actionWidth), x + 25, y + 13, 0x52736E, false);
         graphics.drawString(font, ago, agoX, y + 13, 0x657D77, false);
     }
 
