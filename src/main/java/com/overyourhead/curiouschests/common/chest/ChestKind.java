@@ -12,7 +12,7 @@ public enum ChestKind {
     RESONANT("resonant", 28, 193, 185),
     ARCHIVIST("archivist", 55, 176, 222),
     WITCH("witch", 54, 209, 243),
-    TRAPPER("trapper", 0, 176, 132);
+    TRAPPER("trapper", 0, 176, 147);
 
     private final String id;
     private final int slots;

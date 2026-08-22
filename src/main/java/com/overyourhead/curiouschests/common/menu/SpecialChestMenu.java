@@ -458,9 +458,10 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
         } else if (kind == ChestKind.ARCHIVIST || kind == ChestKind.WITCH) {
             yBase = 139;
         } else if (kind == ChestKind.TRAPPER) {
-            // One virtual row of captured creatures occupies the normal chest row.
-            // Player inventory begins where a vanilla one-row container would place it.
-            yBase = 49;
+            // The redesigned Trapper GUI is taller and places both the preview
+            // row and the player inventory 16 pixels lower than the original
+            // placeholder alignment.
+            yBase = 62;
         } else {
             yBase = 31 + kind.storageRows() * 18;
         }

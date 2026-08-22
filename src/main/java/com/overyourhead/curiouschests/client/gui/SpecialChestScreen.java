@@ -88,7 +88,7 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
     private static final double LOG_OVERLAY_Z = 500.0D;
 
     private static final int TRAPPER_ENTITY_SLOT_X = 8;
-    private static final int TRAPPER_ENTITY_SLOT_Y = 18;
+    private static final int TRAPPER_ENTITY_SLOT_Y = 31;
     private static final int TRAPPER_ENTITY_SLOT_SIZE = 18;
     private static final int TRAPPER_ENTITY_SLOTS = 9;
     private static final ResourceLocation TRAPPER_GUI_TEXTURE = ResourceLocation.fromNamespaceAndPath(
@@ -251,7 +251,8 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
         if (menu.kind() == ChestKind.INFERNAL
                 || menu.kind() == ChestKind.ENDER_DISPATCH
                 || menu.kind() == ChestKind.RESONANT
-                || menu.kind() == ChestKind.SCULK_SENTINEL) {
+                || menu.kind() == ChestKind.SCULK_SENTINEL
+                || menu.kind() == ChestKind.TRAPPER) {
             return;
         }
 

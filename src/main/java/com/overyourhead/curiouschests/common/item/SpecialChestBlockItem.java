@@ -42,6 +42,10 @@ public final class SpecialChestBlockItem extends BlockItem {
             tooltip.add(Component.translatable(prefix + ".output")
                     .withStyle(ChatFormatting.GRAY));
         }
+        if (kind == ChestKind.SCULK_SENTINEL) {
+            tooltip.add(Component.translatable(prefix + ".defense")
+                    .withStyle(ChatFormatting.GRAY));
+        }
         if (kind == ChestKind.INFERNAL) {
             tooltip.add(Component.translatable(prefix + ".warning")
                     .withStyle(ChatFormatting.RED));
