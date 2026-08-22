@@ -28,5 +28,16 @@ public final class ModParticles {
             () -> new SimpleParticleType(false)
     );
 
+
+    public static final DeferredHolder<ParticleType<?>, SimpleParticleType> TRAPPER_LINK = PARTICLES.register(
+            "trapper_link",
+            () -> new SimpleParticleType(false)
+    );
+
+    public static final DeferredHolder<ParticleType<?>, SimpleParticleType> TRAPPER_ORBIT = PARTICLES.register(
+            "trapper_orbit",
+            () -> new SimpleParticleType(false)
+    );
+
     private ModParticles() {}
 }

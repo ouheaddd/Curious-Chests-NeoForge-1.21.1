@@ -58,7 +58,9 @@ public final class TrappersChestModel {
                 "base",
                 CubeListBuilder.create()
                         .texOffs(0, 0)
-                        .addBox(1.0F, 0.0F, 1.0F, 14.0F, 10.0F, 14.0F, new CubeDeformation(0.0F)),
+                        .addBox(1.0F, 0.0F, 1.0F, 14.0F, 10.0F, 14.0F, new CubeDeformation(0.0F))
+                        .texOffs(0, 0)
+                        .addBox(1.0F, 1.0F, 1.0F, 14.0F, 0.0F, 14.0F, new CubeDeformation(0.0F)),
                 PartPose.offsetAndRotation(-8.0F, 24.0F, 8.0F, CLOSED_X_ROT, 0.0F, 0.0F)
         );
 

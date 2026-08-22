@@ -1,16 +1,22 @@
 {
   "type": "minecraft:crafting_shaped",
-  "category": "misc",
+  "category": "building",
   "pattern": [
-    "AAA",
-    "ACA",
-    "AAA"
+    "ABA",
+    "DHD",
+    "ABA"
   ],
   "key": {
     "A": {
-      "item": "minecraft:amethyst_shard"
+      "item": "curiouschests:resonance_crystal"
     },
-    "C": {
+    "B": {
+      "item": "minecraft:smooth_basalt"
+    },
+    "D": {
+      "item": "minecraft:calcite"
+    },
+    "H": {
       "item": "minecraft:chest"
     }
   },

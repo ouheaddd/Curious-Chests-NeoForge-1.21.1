@@ -91,8 +91,9 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
     private static final int TRAPPER_ENTITY_SLOT_Y = 18;
     private static final int TRAPPER_ENTITY_SLOT_SIZE = 18;
     private static final int TRAPPER_ENTITY_SLOTS = 9;
-    private static final ResourceLocation TRAPPER_GUI_TEXTURE = ResourceLocation.withDefaultNamespace(
-            "textures/gui/container/generic_54.png"
+    private static final ResourceLocation TRAPPER_GUI_TEXTURE = ResourceLocation.fromNamespaceAndPath(
+            CuriousChestsMod.MOD_ID,
+            "textures/gui/container/trapper.png"
     );
 
     private static final ResourceLocation SENTINEL_BUTTON_TEXTURE = ResourceLocation.fromNamespaceAndPath(
@@ -185,11 +186,10 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         if (menu.kind() == ChestKind.TRAPPER) {
-            // Vanilla one-row container assembled from generic_54. The nine top
-            // slots are visual entity cells, not ItemStack slots.
-            int creatureAreaHeight = 17 + 18;
-            graphics.blit(texture, leftPos, topPos, 0, 0, imageWidth, creatureAreaHeight);
-            graphics.blit(texture, leftPos, topPos + creatureAreaHeight, 0, 126, imageWidth, 96);
+            // Trapper now owns an editable 256x256 GUI asset like the other
+            // Curious Chests. The visible vanilla-style placeholder occupies
+            // the top-left 176x132 area and can be redrawn without touching code.
+            graphics.blit(texture, leftPos, topPos, 0, 0, imageWidth, imageHeight);
         } else if (menu.kind() == ChestKind.BUILDERS) {
             graphics.blit(
                     texture,

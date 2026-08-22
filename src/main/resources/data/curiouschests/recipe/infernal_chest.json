@@ -1,17 +1,20 @@
 {
   "type": "minecraft:crafting_shaped",
-  "category": "misc",
+  "category": "building",
   "pattern": [
-    "NBN",
-    "BCB",
-    "NBN"
+    "BNB",
+    "FCF",
+    "BNB"
   ],
   "key": {
+    "B": {
+      "item": "minecraft:blackstone"
+    },
     "N": {
       "item": "minecraft:nether_bricks"
     },
-    "B": {
-      "item": "minecraft:blaze_rod"
+    "F": {
+      "item": "minecraft:blast_furnace"
     },
     "C": {
       "item": "minecraft:chest"

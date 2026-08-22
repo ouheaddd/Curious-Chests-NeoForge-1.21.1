@@ -1,0 +1,37 @@
+{
+  "parent": "curiouschests:root",
+  "display": {
+    "icon": {
+      "id": "curiouschests:ender_dispatch_chest",
+      "count": 1
+    },
+    "title": {
+      "translate": "advancements.curiouschests.ender_dispatch_chest.title"
+    },
+    "description": {
+      "translate": "advancements.curiouschests.ender_dispatch_chest.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "has_chest": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "curiouschests:ender_dispatch_chest"
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_chest"
+    ]
+  ],
+  "sends_telemetry_event": false
+}

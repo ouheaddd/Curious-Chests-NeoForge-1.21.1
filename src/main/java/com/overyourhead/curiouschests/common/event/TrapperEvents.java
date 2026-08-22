@@ -2,6 +2,7 @@ package com.overyourhead.curiouschests.common.event;
 
 import com.overyourhead.curiouschests.common.block.TrapperChestBlock;
 import com.overyourhead.curiouschests.common.blockentity.SpecialChestBlockEntity;
+import com.overyourhead.curiouschests.core.ModParticles;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -48,14 +49,14 @@ public final class TrapperEvents {
         ));
 
         event.getLevel().playSound(null, event.getPos(), SoundEvents.VAULT_CLOSE_SHUTTER, SoundSource.BLOCKS, 0.72F, 0.92F);
-        event.getLevel().sendParticles(
-                ParticleTypes.VAULT_CONNECTION,
-                event.getPos().getX() + 0.5D,
-                event.getPos().getY() + 0.65D,
-                event.getPos().getZ() + 0.5D,
-                14,
-                0.42D, 0.38D, 0.42D,
-                0.06D
-        );
+        double cx = event.getPos().getX() + 0.5D;
+        double cy = event.getPos().getY() + 0.65D;
+        double cz = event.getPos().getZ() + 0.5D;
+        for (int i = 0; i < 14; i++) {
+            double ox = (event.getLevel().random.nextDouble() - 0.5D) * 0.84D;
+            double oy = (event.getLevel().random.nextDouble() - 0.5D) * 0.76D;
+            double oz = (event.getLevel().random.nextDouble() - 0.5D) * 0.84D;
+            event.getLevel().sendParticles(ModParticles.TRAPPER_LINK.get(), cx, cy, cz, 0, ox, oy, oz, 1.0D);
+        }
     }
 }

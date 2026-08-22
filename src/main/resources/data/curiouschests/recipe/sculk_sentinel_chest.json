@@ -1,17 +1,20 @@
 {
   "type": "minecraft:crafting_shaped",
-  "category": "misc",
+  "category": "building",
   "pattern": [
     "ESE",
-    "SCS",
-    "ESE"
+    "KCK",
+    "EKE"
   ],
   "key": {
     "E": {
       "item": "minecraft:echo_shard"
     },
     "S": {
-      "item": "minecraft:sculk"
+      "item": "minecraft:sculk_shrieker"
+    },
+    "K": {
+      "item": "minecraft:sculk_catalyst"
     },
     "C": {
       "item": "minecraft:chest"

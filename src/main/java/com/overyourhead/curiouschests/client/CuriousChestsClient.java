@@ -12,6 +12,8 @@ import com.overyourhead.curiouschests.client.model.SculkSentinelChestModel;
 import com.overyourhead.curiouschests.client.model.TrappersChestModel;
 import com.overyourhead.curiouschests.client.model.WitchLiquidModel;
 import com.overyourhead.curiouschests.client.model.WitchsChestModel;
+import com.overyourhead.curiouschests.client.particle.TrapperLinkParticle;
+import com.overyourhead.curiouschests.client.particle.TrapperOrbitParticle;
 import com.overyourhead.curiouschests.client.particle.WitchBurstParticle;
 import com.overyourhead.curiouschests.client.particle.WitchSparkParticle;
 import com.overyourhead.curiouschests.client.particle.WitchSteamParticle;
@@ -111,6 +113,8 @@ public final class CuriousChestsClient {
             event.registerSpriteSet(ModParticles.WITCH_STEAM.get(), WitchSteamParticle.Provider::new);
             event.registerSpriteSet(ModParticles.WITCH_SPARK.get(), WitchSparkParticle.Provider::new);
             event.registerSpriteSet(ModParticles.WITCH_BURST.get(), WitchBurstParticle.Provider::new);
+            event.registerSpriteSet(ModParticles.TRAPPER_LINK.get(), TrapperLinkParticle.Provider::new);
+            event.registerSpriteSet(ModParticles.TRAPPER_ORBIT.get(), TrapperOrbitParticle.Provider::new);
         }
 
         @SubscribeEvent

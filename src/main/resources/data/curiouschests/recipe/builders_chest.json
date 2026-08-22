@@ -1,20 +1,23 @@
 {
   "type": "minecraft:crafting_shaped",
-  "category": "misc",
+  "category": "building",
   "pattern": [
-    "PPP",
-    "CWC",
-    "PPP"
+    "ISI",
+    "TCT",
+    "ISI"
   ],
   "key": {
-    "P": {
-      "item": "minecraft:oak_planks"
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "S": {
+      "item": "minecraft:stripped_birch_wood"
+    },
+    "T": {
+      "item": "minecraft:crafting_table"
     },
     "C": {
-      "item": "minecraft:copper_ingot"
-    },
-    "W": {
-      "item": "minecraft:crafting_table"
+      "item": "minecraft:chest"
     }
   },
   "result": {

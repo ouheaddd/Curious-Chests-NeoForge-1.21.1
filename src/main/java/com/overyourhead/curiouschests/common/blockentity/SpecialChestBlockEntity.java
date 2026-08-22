@@ -936,7 +936,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
                             1, 0.0D, 0.0D, 0.0D, 0.0D
                     );
                     serverLevel.sendParticles(
-                            ParticleTypes.REVERSE_PORTAL,
+                            ModParticles.TRAPPER_ORBIT.get(),
                             pos.getX() + 0.5D, pos.getY() + 0.65D, pos.getZ() + 0.5D,
                             36, 0.55D, 0.45D, 0.55D, 0.15D
                     );
@@ -1757,7 +1757,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     private void clientTickTrapper(Level level, BlockPos pos) {
         if (trappedEntities.isEmpty()) return;
         double cx = pos.getX() + 0.5D;
-        double cy = pos.getY() + 0.52D;
+        double cy = pos.getY() + 0.395D;
         double cz = pos.getZ() + 0.5D;
 
         if (level.random.nextFloat() < 0.34F) {
@@ -1766,14 +1766,23 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
             double x = cx + Math.cos(angle) * radius;
             double y = cy + (level.random.nextDouble() - 0.5D) * 0.34D;
             double z = cz + Math.sin(angle) * radius;
-            // VAULT_CONNECTION interprets the final vector as a destination,
-            // producing the same "energy travelling toward a point" language
-            // used by the vanilla Vault.
-            level.addParticle(ParticleTypes.VAULT_CONNECTION, x, y, z, cx, cy, cz);
+            // VAULT_CONNECTION is a FlyTowardsPositionParticle: the last three
+            // values are a RELATIVE source offset, not absolute world coords.
+            // Spawn at the destination (the display center), so the particle
+            // appears around the ring and flies inward without long world-space streaks.
+            level.addParticle(ModParticles.TRAPPER_LINK.get(), cx, cy, cz, x - cx, y - cy, z - cz);
+        }
+        // A quieter pair of Vault connections entering from the two sides keeps
+        // the occupied chest visually "charged" without covering the preview mob.
+        if (level.getGameTime() % 5L == 0L) {
+            double sideY = cy + (level.random.nextDouble() - 0.5D) * 0.16D;
+            double sideOffset = 0.43D;
+            level.addParticle(ModParticles.TRAPPER_LINK.get(), cx, cy, cz, -sideOffset, sideY - cy, 0.0D);
+            level.addParticle(ModParticles.TRAPPER_LINK.get(), cx, cy, cz, sideOffset, sideY - cy, 0.0D);
         }
         if (level.random.nextFloat() < 0.10F) {
             level.addParticle(
-                    ParticleTypes.REVERSE_PORTAL,
+                    ModParticles.TRAPPER_ORBIT.get(),
                     cx + (level.random.nextDouble() - 0.5D) * 0.45D,
                     cy + (level.random.nextDouble() - 0.5D) * 0.30D,
                     cz + (level.random.nextDouble() - 0.5D) * 0.45D,
@@ -1928,7 +1937,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         level.addFreshEntityWithPassengers(restored);
         level.playSound(null, worldPosition, SoundEvents.VAULT_EJECT_ITEM, SoundSource.BLOCKS, 0.82F, 1.0F);
         level.sendParticles(
-                ParticleTypes.REVERSE_PORTAL,
+                ModParticles.TRAPPER_ORBIT.get(),
                 restored.getX(), restored.getY() + restored.getBbHeight() * 0.45D, restored.getZ(),
                 20, 0.35D, 0.45D, 0.35D, 0.10D
         );
@@ -2114,7 +2123,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         if (kind() != ChestKind.TRAPPER || level == null || trappedEntities.isEmpty()) return null;
         if (trapperPreviewDirty) rebuildTrapperPreviewEntities();
         if (trapperClientPreviewEntities.isEmpty()) return null;
-        int index = (int) ((level.getGameTime() / 40L) % trapperClientPreviewEntities.size());
+        int index = (int) ((level.getGameTime() / 100L) % trapperClientPreviewEntities.size());
         return trapperClientPreviewEntities.get(index);
     }
 

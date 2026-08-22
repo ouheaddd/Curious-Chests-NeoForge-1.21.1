@@ -1,6 +1,7 @@
 package com.overyourhead.curiouschests.common.logic;
 
 import com.overyourhead.curiouschests.common.blockentity.SpecialChestBlockEntity;
+import com.overyourhead.curiouschests.core.ModParticles;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -49,6 +50,12 @@ public final class TrapperLogic {
     // the rendered chest's collision.
     private static final double MOUTH_HEIGHT = 1.18D;
     private static final double MOUTH_ENTRY_DISTANCE = 1.35D;
+    // If a target starts on a lower ledge/pit floor, pulling directly toward the
+    // mouth can pin its hitbox against the vertical block face. Lift it almost
+    // straight up first, then resume the normal horizontal suction.
+    private static final double LOWER_TARGET_LIFT_GAP = 0.48D;
+    private static final double LOWER_TARGET_LIFT_MIN_SPEED = 0.30D;
+    private static final double LOWER_TARGET_LIFT_MAX_SPEED = 0.42D;
     private static final double INTAKE_HEIGHT = 0.70D;
 
     // Once the mob reaches the mouth, a short controlled phase moves its rendered
@@ -200,13 +207,14 @@ public final class TrapperLogic {
         level.playSound(null, pos, SoundEvents.VAULT_ACTIVATE, SoundSource.BLOCKS, 0.72F, 1.0F);
         level.playSound(null, pos, SoundEvents.VAULT_OPEN_SHUTTER, SoundSource.BLOCKS, 0.46F, 1.05F);
         Vec3 mouth = mouthPoint(pos, chest.getBlockState());
-        level.sendParticles(
-                ParticleTypes.VAULT_CONNECTION,
-                mouth.x, mouth.y, mouth.z,
-                6,
-                0.30D, 0.22D, 0.30D,
-                0.05D
-        );
+        // VAULT_CONNECTION expects a relative source offset. count=0 preserves
+        // the supplied vector instead of randomizing it like a normal velocity particle.
+        for (int i = 0; i < 6; i++) {
+            double ox = (level.random.nextDouble() - 0.5D) * 0.60D;
+            double oy = (level.random.nextDouble() - 0.5D) * 0.44D;
+            double oz = (level.random.nextDouble() - 0.5D) * 0.60D;
+            level.sendParticles(ModParticles.TRAPPER_LINK.get(), mouth.x, mouth.y, mouth.z, 0, ox, oy, oz, 1.0D);
+        }
     }
 
     private static void pullTarget(
@@ -228,12 +236,35 @@ public final class TrapperLogic {
         Vec3 delta = mouth.subtract(targetCenter);
         double distance = delta.length();
 
-        // Phase one is fully physical. The target is pulled toward the opening
-        // above the block instead of toward a point buried in the collision.
+        // Phase one is fully physical. If the creature is noticeably below the
+        // mouth (for example one block down in a pit), first lift it vertically.
+        // A direct diagonal pull can otherwise press the hitbox into the ledge and
+        // leave it hovering there until the capture timeout. Once the creature is
+        // high enough, the normal pull toward the mouth takes over.
         if (distance > 1.0E-4D) {
-            double speed = Mth.lerp(progress, 0.11D, 0.34D);
-            Vec3 desired = delta.normalize().scale(speed);
-            Vec3 next = target.getDeltaMovement().scale(0.38D).add(desired.scale(0.74D));
+            double verticalGap = mouth.y - targetCenter.y;
+            Vec3 currentMotion = target.getDeltaMovement();
+            Vec3 next;
+
+            if (verticalGap > LOWER_TARGET_LIFT_GAP) {
+                double liftSpeed = Mth.lerp(
+                        progress,
+                        LOWER_TARGET_LIFT_MIN_SPEED,
+                        LOWER_TARGET_LIFT_MAX_SPEED
+                );
+                // Damp horizontal movement while climbing so the creature clears
+                // the wall/ledge instead of being dragged into it.
+                next = new Vec3(
+                        currentMotion.x * 0.28D,
+                        Math.max(currentMotion.y * 0.35D + liftSpeed, liftSpeed),
+                        currentMotion.z * 0.28D
+                );
+            } else {
+                double speed = Mth.lerp(progress, 0.11D, 0.34D);
+                Vec3 desired = delta.normalize().scale(speed);
+                next = currentMotion.scale(0.38D).add(desired.scale(0.74D));
+            }
+
             target.setDeltaMovement(next);
             target.hasImpulse = true;
             target.fallDistance = 0.0F;
@@ -243,15 +274,23 @@ public final class TrapperLogic {
         // Shrinking starts only after the target has reached the final suction phase.
 
         if ((ticks & 3) == 0) {
-            level.sendParticles(
-                    ParticleTypes.VAULT_CONNECTION,
-                    target.getX(), target.getY() + target.getBbHeight() * 0.55D, target.getZ(),
-                    2,
-                    0.08D, 0.08D, 0.08D,
-                    0.02D
+            Vec3 particleSource = new Vec3(
+                    target.getX(),
+                    target.getY() + target.getBbHeight() * 0.55D,
+                    target.getZ()
             );
+            Vec3 particleOffset = particleSource.subtract(mouth);
+            for (int i = 0; i < 2; i++) {
+                level.sendParticles(
+                        ModParticles.TRAPPER_LINK.get(),
+                        mouth.x, mouth.y, mouth.z,
+                        0,
+                        particleOffset.x, particleOffset.y, particleOffset.z,
+                        1.0D
+                );
+            }
             level.sendParticles(
-                    ParticleTypes.REVERSE_PORTAL,
+                    ModParticles.TRAPPER_ORBIT.get(),
                     mouth.x, mouth.y, mouth.z,
                     7,
                     0.45D, 0.35D, 0.45D,
@@ -273,7 +312,7 @@ public final class TrapperLogic {
             target.fallDistance = 0.0F;
             level.playSound(null, pos, SoundEvents.VAULT_INSERT_ITEM, SoundSource.BLOCKS, 0.34F, 1.18F);
             level.sendParticles(
-                    ParticleTypes.REVERSE_PORTAL,
+                    ModParticles.TRAPPER_ORBIT.get(),
                     mouth.x, mouth.y, mouth.z,
                     12,
                     0.24D, 0.24D, 0.24D,
@@ -317,7 +356,7 @@ public final class TrapperLogic {
 
         if ((ticks & 1) == 0) {
             level.sendParticles(
-                    ParticleTypes.REVERSE_PORTAL,
+                    ModParticles.TRAPPER_ORBIT.get(),
                     currentCenter.x, currentCenter.y, currentCenter.z,
                     5,
                     0.10D, 0.10D, 0.10D,
@@ -350,7 +389,7 @@ public final class TrapperLogic {
             level.playSound(null, pos, SoundEvents.VAULT_CLOSE_SHUTTER, SoundSource.BLOCKS, 0.48F, 0.96F);
             level.playSound(null, pos, SoundEvents.CHEST_CLOSE, SoundSource.BLOCKS, 0.34F, 0.94F);
             level.sendParticles(
-                    ParticleTypes.REVERSE_PORTAL,
+                    ModParticles.TRAPPER_ORBIT.get(),
                     intake.x, intake.y, intake.z,
                     28,
                     0.40D, 0.35D, 0.40D,

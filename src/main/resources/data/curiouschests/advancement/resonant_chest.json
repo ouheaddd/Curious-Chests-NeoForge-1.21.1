@@ -1,0 +1,37 @@
+{
+  "parent": "curiouschests:root",
+  "display": {
+    "icon": {
+      "id": "curiouschests:resonant_chest",
+      "count": 1
+    },
+    "title": {
+      "translate": "advancements.curiouschests.resonant_chest.title"
+    },
+    "description": {
+      "translate": "advancements.curiouschests.resonant_chest.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "has_chest": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "curiouschests:resonant_chest"
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_chest"
+    ]
+  ],
+  "sends_telemetry_event": false
+}

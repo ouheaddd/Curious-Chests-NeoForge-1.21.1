@@ -1,17 +1,20 @@
 {
   "type": "minecraft:crafting_shaped",
-  "category": "misc",
+  "category": "building",
   "pattern": [
-    "III",
-    "ACA",
-    "III"
+    "DHD",
+    "ICI",
+    "DHD"
   ],
   "key": {
+    "D": {
+      "item": "minecraft:dark_oak_log"
+    },
+    "H": {
+      "item": "minecraft:hopper"
+    },
     "I": {
       "item": "minecraft:iron_ingot"
-    },
-    "A": {
-      "item": "minecraft:amethyst_shard"
     },
     "C": {
       "item": "minecraft:chest"

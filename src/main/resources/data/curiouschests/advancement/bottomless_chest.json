@@ -1,0 +1,37 @@
+{
+  "parent": "curiouschests:root",
+  "display": {
+    "icon": {
+      "id": "curiouschests:bottomless_chest",
+      "count": 1
+    },
+    "title": {
+      "translate": "advancements.curiouschests.bottomless_chest.title"
+    },
+    "description": {
+      "translate": "advancements.curiouschests.bottomless_chest.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "has_chest": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "curiouschests:bottomless_chest"
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_chest"
+    ]
+  ],
+  "sends_telemetry_event": false
+}

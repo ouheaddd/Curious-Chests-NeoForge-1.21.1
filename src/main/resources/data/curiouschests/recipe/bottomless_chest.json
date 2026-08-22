@@ -1,20 +1,20 @@
 {
   "type": "minecraft:crafting_shaped",
-  "category": "misc",
+  "category": "building",
   "pattern": [
-    "PPP",
-    "ECE",
-    "PPP"
+    "CBC",
+    "BHB",
+    "CBC"
   ],
   "key": {
-    "P": {
-      "item": "minecraft:prismarine_bricks"
-    },
-    "E": {
-      "item": "minecraft:ender_chest"
-    },
     "C": {
-      "item": "minecraft:heart_of_the_sea"
+      "item": "minecraft:copper_block"
+    },
+    "B": {
+      "item": "minecraft:barrel"
+    },
+    "H": {
+      "item": "minecraft:chest"
     }
   },
   "result": {

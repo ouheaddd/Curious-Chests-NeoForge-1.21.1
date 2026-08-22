@@ -1,20 +1,26 @@
 {
   "type": "minecraft:crafting_shaped",
-  "category": "misc",
+  "category": "building",
   "pattern": [
-    "BBB",
-    "BCB",
-    "BLB"
+    "BLB",
+    "KCK",
+    "BEB"
   ],
   "key": {
     "B": {
       "item": "minecraft:bookshelf"
     },
+    "L": {
+      "item": "minecraft:lectern"
+    },
+    "K": {
+      "item": "minecraft:book"
+    },
     "C": {
       "item": "minecraft:chest"
     },
-    "L": {
-      "item": "minecraft:lapis_lazuli"
+    "E": {
+      "item": "minecraft:enchanting_table"
     }
   },
   "result": {

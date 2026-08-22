@@ -32,6 +32,9 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.NeutralMob;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -210,13 +213,31 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         if (entity == null || chest.getLevel() == null) return;
 
         float maxDimension = Math.max(0.7F, Math.max(entity.getBbWidth(), entity.getBbHeight()));
-        float scale = Mth.clamp(0.56F / maxDimension, 0.12F, 0.72F);
+        // 65% of the original preview size: smaller than the first prototype,
+        // but less tiny than the previous 50% pass.
+        float scale = Mth.clamp(0.364F / maxDimension, 0.08F, 0.47F);
         long gameTime = chest.getLevel().getGameTime();
-        float rotation = (gameTime + partialTick) * 2.2F;
+
+        /*
+         * These are display dummies, not real ticking world entities. Feeding a
+         * changing tickCount/partialTick into the normal entity renderer makes a
+         * surprising number of vanilla renderers interpolate animation state that
+         * never actually advanced (walk limbs, head/body yaw, attack pose, etc.).
+         * That is the source of the visible 20 Hz "twitching". Keep the dummy in
+         * one deterministic pose and animate only the outer PoseStack.
+         */
+        freezeTrapperPreviewPose(entity);
+
+        // The only motion left is a frame-smooth, bounded display rotation and a
+        // very small hover. One full turn takes about 10 seconds.
+        float displayTime = (gameTime % 200L) + partialTick;
+        float rotation = displayTime * 1.80F;
         float hover = Mth.sin((gameTime + partialTick) * 0.10F) * 0.025F;
 
         poseStack.pushPose();
-        poseStack.translate(0.5F, 0.48F + hover, 0.5F);
+        // Two model pixels lower than the previous placement: 2 / 16 = 0.125 block.
+        poseStack.translate(0.5F, 0.355F + hover, 0.5F);
+        poseStack.mulPose(Axis.YP.rotationDegrees(rotation));
         poseStack.scale(scale, scale, scale);
         poseStack.translate(0.0F, -entity.getBbHeight() * 0.5F, 0.0F);
 
@@ -227,14 +248,44 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
                 0.0D,
                 0.0D,
                 0.0D,
-                rotation,
-                partialTick,
+                0.0F,
+                0.0F,
                 poseStack,
                 bufferSource,
                 LightTexture.FULL_BRIGHT
         );
         dispatcher.setRenderShadow(true);
         poseStack.popPose();
+    }
+
+    private static void freezeTrapperPreviewPose(Entity entity) {
+        entity.tickCount = 0;
+        entity.setDeltaMovement(0.0D, 0.0D, 0.0D);
+        entity.setYRot(0.0F);
+        entity.yRotO = 0.0F;
+        entity.setXRot(0.0F);
+        entity.xRotO = 0.0F;
+
+        if (entity instanceof LivingEntity living) {
+            living.yBodyRot = 0.0F;
+            living.yBodyRotO = 0.0F;
+            living.yHeadRot = 0.0F;
+            living.yHeadRotO = 0.0F;
+            living.attackAnim = 0.0F;
+            living.oAttackAnim = 0.0F;
+            living.hurtTime = 0;
+            living.deathTime = 0;
+            living.walkAnimation.setSpeed(0.0F);
+        }
+        if (entity instanceof Mob mob) {
+            mob.setTarget(null);
+        }
+        // Neutral mobs can retain persistent anger from their captured NBT. In
+        // particular an angry Enderman renderer deliberately adds random per-frame
+        // offsets, which looks exactly like a broken/jittering preview.
+        if (entity instanceof NeutralMob neutralMob) {
+            neutralMob.stopBeingAngry();
+        }
     }
 
     private void renderEnderDispatchPreview(

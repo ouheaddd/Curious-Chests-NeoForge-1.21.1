@@ -1,0 +1,157 @@
+{
+  "parent": "curiouschests:root",
+  "display": {
+    "icon": {
+      "id": "curiouschests:trappers_chest",
+      "count": 1
+    },
+    "title": {
+      "translate": "advancements.curiouschests.all_chests.title"
+    },
+    "description": {
+      "translate": "advancements.curiouschests.all_chests.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "criteria": {
+    "has_bottomless_chest": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "curiouschests:bottomless_chest"
+          }
+        ]
+      }
+    },
+    "has_ender_dispatch_chest": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "curiouschests:ender_dispatch_chest"
+          }
+        ]
+      }
+    },
+    "has_infernal_chest": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "curiouschests:infernal_chest"
+          }
+        ]
+      }
+    },
+    "has_builders_chest": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "curiouschests:builders_chest"
+          }
+        ]
+      }
+    },
+    "has_collectors_chest": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "curiouschests:collectors_chest"
+          }
+        ]
+      }
+    },
+    "has_sculk_sentinel_chest": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "curiouschests:sculk_sentinel_chest"
+          }
+        ]
+      }
+    },
+    "has_resonant_chest": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "curiouschests:resonant_chest"
+          }
+        ]
+      }
+    },
+    "has_archivists_chest": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "curiouschests:archivists_chest"
+          }
+        ]
+      }
+    },
+    "has_witchs_chest": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "curiouschests:witchs_chest"
+          }
+        ]
+      }
+    },
+    "has_trappers_chest": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "curiouschests:trappers_chest"
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_bottomless_chest"
+    ],
+    [
+      "has_ender_dispatch_chest"
+    ],
+    [
+      "has_infernal_chest"
+    ],
+    [
+      "has_builders_chest"
+    ],
+    [
+      "has_collectors_chest"
+    ],
+    [
+      "has_sculk_sentinel_chest"
+    ],
+    [
+      "has_resonant_chest"
+    ],
+    [
+      "has_archivists_chest"
+    ],
+    [
+      "has_witchs_chest"
+    ],
+    [
+      "has_trappers_chest"
+    ]
+  ],
+  "rewards": {
+    "experience": 500
+  },
+  "sends_telemetry_event": false
+}

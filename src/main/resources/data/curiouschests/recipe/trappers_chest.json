@@ -1,15 +1,27 @@
 {
   "type": "minecraft:crafting_shaped",
-  "category": "misc",
+  "category": "building",
   "pattern": [
-    "III",
-    "ITI",
-    "ICI"
+    "CKC",
+    "BHB",
+    "CSC"
   ],
   "key": {
-    "I": { "item": "minecraft:copper_ingot" },
-    "T": { "item": "minecraft:trial_key" },
-    "C": { "item": "minecraft:chest" }
+    "C": {
+      "item": "minecraft:copper_block"
+    },
+    "K": {
+      "item": "minecraft:trial_key"
+    },
+    "B": {
+      "item": "minecraft:iron_bars"
+    },
+    "S": {
+      "item": "minecraft:soul_sand"
+    },
+    "H": {
+      "item": "minecraft:chest"
+    }
   },
   "result": {
     "id": "curiouschests:trappers_chest",

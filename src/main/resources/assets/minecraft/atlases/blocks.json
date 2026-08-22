@@ -35,6 +35,10 @@
     {
       "type": "single",
       "resource": "curiouschests:particle/chest/witch"
+    },
+    {
+      "type": "single",
+      "resource": "curiouschests:particle/chest/trappers"
     }
   ]
 }
