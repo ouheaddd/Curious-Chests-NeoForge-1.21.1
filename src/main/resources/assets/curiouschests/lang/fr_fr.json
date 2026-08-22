@@ -103,5 +103,7 @@
   "advancements.curiouschests.trappers_chest.title": "Zoo de poche",
   "advancements.curiouschests.trappers_chest.description": "Obtenez un coffre du trappeur. Neuf places. Zéro question.",
   "advancements.curiouschests.all_chests.title": "Collection curieuse",
-  "advancements.curiouschests.all_chests.description": "Rassemblez les dix coffres spéciaux."
+  "advancements.curiouschests.all_chests.description": "Rassemblez les dix coffres spéciaux.",
+  "tooltip.curiouschests.witch.brew_hint": "Accroupi + clic droit avec une fiole vide : puisez une potion aléatoire lorsque le breuvage est prêt.",
+  "message.curiouschests.witch.brew_not_ready": "Le breuvage de sorcière n’a pas encore assez infusé."
 }

@@ -54,6 +54,10 @@ public final class SpecialChestBlockItem extends BlockItem {
             tooltip.add(Component.translatable(prefix + ".rebind_hint")
                     .withStyle(ChatFormatting.DARK_PURPLE));
         }
+        if (kind == ChestKind.WITCH) {
+            tooltip.add(Component.translatable(prefix + ".brew_hint")
+                    .withStyle(ChatFormatting.DARK_PURPLE));
+        }
         if (kind == ChestKind.ARCHIVIST) {
             tooltip.add(Component.translatable(prefix + ".catalog_hint")
                     .withStyle(ChatFormatting.DARK_PURPLE));

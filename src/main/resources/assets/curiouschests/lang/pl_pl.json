@@ -103,5 +103,7 @@
   "advancements.curiouschests.trappers_chest.title": "Kieszonkowe zoo",
   "advancements.curiouschests.trappers_chest.description": "Zdobądź Skrzynię Łowcy. Dziewięć miejsc. Zero pytań.",
   "advancements.curiouschests.all_chests.title": "Ciekawa kolekcja",
-  "advancements.curiouschests.all_chests.description": "Zbierz wszystkie dziesięć specjalnych skrzyń."
+  "advancements.curiouschests.all_chests.description": "Zbierz wszystkie dziesięć specjalnych skrzyń.",
+  "tooltip.curiouschests.witch.brew_hint": "Skradanie + PPM pustą butelką: nabierz losową miksturę, gdy wywar będzie gotowy.",
+  "message.curiouschests.witch.brew_not_ready": "Wiedźmi wywar jeszcze się nie przegryzł."
 }

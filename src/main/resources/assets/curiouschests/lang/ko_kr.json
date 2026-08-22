@@ -103,5 +103,7 @@
   "advancements.curiouschests.trappers_chest.title": "주머니 동물원",
   "advancements.curiouschests.trappers_chest.description": "덫꾼의 상자를 얻으세요. 아홉 자리. 질문은 없습니다.",
   "advancements.curiouschests.all_chests.title": "호기심 가득한 수집품",
-  "advancements.curiouschests.all_chests.description": "특별한 상자 열 종류를 모두 모으세요."
+  "advancements.curiouschests.all_chests.description": "특별한 상자 열 종류를 모두 모으세요.",
+  "tooltip.curiouschests.witch.brew_hint": "빈 유리병을 들고 웅크리기 + 우클릭: 물약이 우러나면 무작위 물약을 떠냅니다.",
+  "message.curiouschests.witch.brew_not_ready": "마녀의 혼합물이 아직 충분히 우러나지 않았습니다."
 }

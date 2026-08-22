@@ -103,5 +103,7 @@
   "advancements.curiouschests.trappers_chest.title": "ポケット動物園",
   "advancements.curiouschests.trappers_chest.description": "トラッパーズチェストを手に入れる。9枠。質問はなし。",
   "advancements.curiouschests.all_chests.title": "好奇心のコレクション",
-  "advancements.curiouschests.all_chests.description": "10種類すべての特別なチェストを集める。"
+  "advancements.curiouschests.all_chests.description": "10種類すべての特別なチェストを集める。",
+  "tooltip.curiouschests.witch.brew_hint": "空の瓶を持ってスニーク＋右クリック：調合液が完成していればランダムなポーションを汲み取れる。",
+  "message.curiouschests.witch.brew_not_ready": "魔女の調合液はまだ十分に熟成していない。"
 }

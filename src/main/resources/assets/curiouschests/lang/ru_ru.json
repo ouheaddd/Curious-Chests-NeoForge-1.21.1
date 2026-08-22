@@ -103,5 +103,7 @@
   "advancements.curiouschests.trappers_chest.title": "Карманный зоопарк",
   "advancements.curiouschests.trappers_chest.description": "Получите Сундук-ловец. Девять мест. Ноль вопросов.",
   "advancements.curiouschests.all_chests.title": "Любопытная коллекция",
-  "advancements.curiouschests.all_chests.description": "Соберите все десять особых сундуков."
+  "advancements.curiouschests.all_chests.description": "Соберите все десять особых сундуков.",
+  "tooltip.curiouschests.witch.brew_hint": "Shift + ПКМ пустой бутылочкой: зачерпнуть случайное зелье, когда настой будет готов.",
+  "message.curiouschests.witch.brew_not_ready": "Ведьмина смесь ещё не настоялась."
 }

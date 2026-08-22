@@ -103,5 +103,7 @@
   "advancements.curiouschests.trappers_chest.title": "Pocket Zoo",
   "advancements.curiouschests.trappers_chest.description": "Obtain a Trapper's Chest. Nine slots. Zero questions.",
   "advancements.curiouschests.all_chests.title": "Curious Collection",
-  "advancements.curiouschests.all_chests.description": "Collect all ten special chests."
+  "advancements.curiouschests.all_chests.description": "Collect all ten special chests.",
+  "tooltip.curiouschests.witch.brew_hint": "Sneak + Right-click with an empty bottle to draw a random potion when the brew is ready.",
+  "message.curiouschests.witch.brew_not_ready": "The witch's brew has not steeped long enough yet."
 }

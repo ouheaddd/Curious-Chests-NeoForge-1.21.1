@@ -97,6 +97,10 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     private static final String DISPATCH_PREVIEW_TAG = "DispatchPreview";
     private static final String TRAPPER_ENTITIES_TAG = "TrapperEntities";
     private static final String TRAPPER_CAPTURING_TAG = "TrapperCapturing";
+    private static final String WITCH_BREW_READY_AT_TAG = "WitchBrewReadyAt";
+    private static final String WITCH_BREW_READY_TAG = "WitchBrewReady";
+    private static final int WITCH_BREW_MIN_TICKS = 2 * 60 * 20;
+    private static final int WITCH_BREW_MAX_TICKS = 10 * 60 * 20;
 
     private final ChestLidController lidController = new ChestLidController();
     private final ChestLidController trapperCaptureLidController = new ChestLidController();
@@ -144,6 +148,8 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     private int witchLastPotionCount;
     private int witchClientBurstTicks;
     private int witchAmbientSoundCooldown;
+    private long witchBrewReadyAt;
+    private boolean witchBrewReady;
 
     // Trapper creature storage is deliberately separate from the ItemStack
     // container. Each entry is a complete entity NBT blob, capped at nine.
@@ -573,6 +579,10 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         sentinelOwnerName = tag.getString(SENTINEL_OWNER_NAME_TAG);
     }
 
+    private void readWitchClientTag(CompoundTag tag) {
+        witchBrewReady = tag.getBoolean(WITCH_BREW_READY_TAG);
+    }
+
     private void syncSentinelClientData() {
         if (level == null || level.isClientSide || kind() != ChestKind.SCULK_SENTINEL) return;
         BlockState state = getBlockState();
@@ -601,6 +611,11 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
             tag.putString(SENTINEL_OWNER_NAME_TAG, sentinelOwnerName);
             return tag;
         }
+        if (kind() == ChestKind.WITCH) {
+            CompoundTag tag = new CompoundTag();
+            tag.putBoolean(WITCH_BREW_READY_TAG, witchBrewReady);
+            return tag;
+        }
         if (kind() == ChestKind.TRAPPER) {
             CompoundTag tag = new CompoundTag();
             writeTrapperEntities(tag);
@@ -615,6 +630,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         if (kind() == ChestKind.ENDER_DISPATCH
                 || kind() == ChestKind.BOTTOMLESS
                 || kind() == ChestKind.SCULK_SENTINEL
+                || kind() == ChestKind.WITCH
                 || kind() == ChestKind.TRAPPER) {
             return ClientboundBlockEntityDataPacket.create(this);
         }
@@ -633,6 +649,10 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         }
         if (kind() == ChestKind.SCULK_SENTINEL) {
             readSentinelClientTag(tag);
+            return;
+        }
+        if (kind() == ChestKind.WITCH) {
+            readWitchClientTag(tag);
             return;
         }
         if (kind() == ChestKind.TRAPPER) {
@@ -658,6 +678,10 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         }
         if (kind() == ChestKind.SCULK_SENTINEL) {
             readSentinelClientTag(packet.getTag());
+            return;
+        }
+        if (kind() == ChestKind.WITCH) {
+            readWitchClientTag(packet.getTag());
             return;
         }
         if (kind() == ChestKind.TRAPPER) {
@@ -1186,6 +1210,9 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
 
         tag.putInt("WorkTicker", workTicker);
         tag.putInt("DispatchCooldown", dispatchCooldown);
+        if (kind() == ChestKind.WITCH) {
+            tag.putLong(WITCH_BREW_READY_AT_TAG, witchBrewReadyAt);
+        }
 
         if (kind() == ChestKind.RESONANT) {
             if (resonanceNodeId != null) tag.putUUID(RESONANCE_NODE_TAG, resonanceNodeId);
@@ -1245,6 +1272,8 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
                 : ItemStack.EMPTY;
 
         workTicker = tag.getInt("WorkTicker");
+        witchBrewReadyAt = kind() == ChestKind.WITCH ? tag.getLong(WITCH_BREW_READY_AT_TAG) : 0L;
+        witchBrewReady = false;
         dispatchCooldown = tag.contains("DispatchCooldown")
                 ? tag.getInt("DispatchCooldown")
                 : DispatchLogic.TRANSFER_DELAY_TICKS;
@@ -1380,21 +1409,103 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         if (!witchPotionCountInitialized) {
             witchLastPotionCount = potionCount;
             witchPotionCountInitialized = true;
-            return;
+        } else {
+            int added = potionCount - witchLastPotionCount;
+            if (added > 0) {
+                level.blockEvent(pos, state.getBlock(), EVENT_WITCH_BREW_BURST, Math.min(8, added));
+            }
+            witchLastPotionCount = potionCount;
         }
 
-        int added = potionCount - witchLastPotionCount;
-        if (added > 0) {
-            level.blockEvent(pos, state.getBlock(), EVENT_WITCH_BREW_BURST, Math.min(8, added));
+        if (!(level instanceof ServerLevel serverLevel)) return;
+        ensureWitchBrewTimer(serverLevel);
+        boolean readyNow = serverLevel.getGameTime() >= witchBrewReadyAt;
+        if (readyNow != witchBrewReady) {
+            witchBrewReady = readyNow;
+            if (readyNow) {
+                // A subtle one-off reaction marks the moment the brew finishes,
+                // then the client keeps bubbling a little harder until it is scooped.
+                level.blockEvent(pos, state.getBlock(), EVENT_WITCH_BREW_BURST, 2);
+            }
+            syncWitchBrewState();
+            setChanged();
         }
-        witchLastPotionCount = potionCount;
+    }
+
+    private void ensureWitchBrewTimer(ServerLevel level) {
+        if (witchBrewReadyAt > 0L) return;
+        scheduleNextWitchBrew(level);
+    }
+
+    private void scheduleNextWitchBrew(ServerLevel level) {
+        int span = WITCH_BREW_MAX_TICKS - WITCH_BREW_MIN_TICKS + 1;
+        witchBrewReadyAt = level.getGameTime() + WITCH_BREW_MIN_TICKS + level.random.nextInt(span);
+        witchBrewReady = false;
+        setChanged();
+        syncWitchBrewState();
+    }
+
+    private void syncWitchBrewState() {
+        if (level == null || level.isClientSide || kind() != ChestKind.WITCH) return;
+        BlockState state = getBlockState();
+        level.sendBlockUpdated(worldPosition, state, state, Block.UPDATE_CLIENTS);
+    }
+
+    public boolean tryScoopWitchBrew(Player player, ItemStack bottle) {
+        if (kind() != ChestKind.WITCH
+                || bottle.isEmpty()
+                || !bottle.is(Items.GLASS_BOTTLE)
+                || !(level instanceof ServerLevel serverLevel)) {
+            return false;
+        }
+
+        ensureWitchBrewTimer(serverLevel);
+        if (serverLevel.getGameTime() < witchBrewReadyAt) {
+            player.displayClientMessage(
+                    Component.translatable("message.curiouschests.witch.brew_not_ready"),
+                    true
+            );
+            return true;
+        }
+
+        ItemStack potion = WitchLogic.randomVanillaPotion(serverLevel.random);
+        if (potion.isEmpty()) return true;
+
+        if (!player.getAbilities().instabuild) {
+            bottle.shrink(1);
+        }
+        if (!player.addItem(potion)) {
+            player.drop(potion, false);
+        }
+
+        serverLevel.playSound(
+                null,
+                worldPosition,
+                SoundEvents.BOTTLE_FILL,
+                SoundSource.BLOCKS,
+                0.85F,
+                0.92F + serverLevel.random.nextFloat() * 0.16F
+        );
+        serverLevel.playSound(
+                null,
+                worldPosition,
+                SoundEvents.BREWING_STAND_BREW,
+                SoundSource.BLOCKS,
+                0.32F,
+                1.08F + serverLevel.random.nextFloat() * 0.10F
+        );
+        serverLevel.blockEvent(worldPosition, getBlockState().getBlock(), EVENT_WITCH_BREW_BURST, 5);
+        scheduleNextWitchBrew(serverLevel);
+        return true;
     }
 
     private void clientTickWitch(Level level, BlockPos pos) {
         if (witchAmbientSoundCooldown > 0) {
             witchAmbientSoundCooldown--;
         } else {
-            float burstFactor = witchClientBurstTicks > 0 ? 0.045F : 0.016F;
+            float burstFactor = witchBrewReady
+                    ? 0.055F
+                    : (witchClientBurstTicks > 0 ? 0.045F : 0.016F);
             if (level.random.nextFloat() < burstFactor) {
                 level.playLocalSound(
                         pos.getX() + 0.5D,
@@ -1406,7 +1517,9 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
                         1.02F + level.random.nextFloat() * 0.12F,
                         false
                 );
-                witchAmbientSoundCooldown = 65 + level.random.nextInt(55);
+                witchAmbientSoundCooldown = witchBrewReady
+                        ? 38 + level.random.nextInt(34)
+                        : 65 + level.random.nextInt(55);
             }
         }
 
@@ -1439,15 +1552,19 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         double centerY = pos.getY();
         double centerZ = pos.getZ() + 0.5D;
 
+        // Once the random brew is ready, the chest subtly boils harder. There is
+        // still no progress bar or timer: attentive players can learn the visual cue.
+        float readyActivity = witchBrewReady ? 1.85F : 1.0F;
+
         // Low vapor: spawn on a loose ring OUTSIDE the chest body. The previous
         // center spawn was mostly occluded by the model and made all wisps overlap.
-        if (level.random.nextFloat() < 0.10F) {
+        if (level.random.nextFloat() < 0.10F * readyActivity) {
             spawnWitchBaseSteam(level, centerX, centerY, centerZ, false);
         }
 
         // Tiny motes above the liquid. Use a wider annulus so they do not stack in
         // one spot over the middle of the lid.
-        if (level.random.nextFloat() < 0.035F) {
+        if (level.random.nextFloat() < 0.035F * readyActivity) {
             double angle = level.random.nextDouble() * Math.PI * 2.0D;
             double radius = 0.20D + level.random.nextDouble() * 0.19D;
             double x = centerX + Math.cos(angle) * radius;
@@ -1464,7 +1581,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         }
 
         // Rare liquid-surface wisp: very slow and offset from center.
-        if (level.random.nextFloat() < 0.022F) {
+        if (level.random.nextFloat() < 0.022F * readyActivity) {
             double angle = level.random.nextDouble() * Math.PI * 2.0D;
             double radius = 0.16D + level.random.nextDouble() * 0.23D;
             double x = centerX + Math.cos(angle) * radius;
@@ -1481,7 +1598,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         }
 
         // Sparse side spark outside the silhouette rather than inside the block.
-        if (level.random.nextFloat() < 0.035F) {
+        if (level.random.nextFloat() < 0.035F * readyActivity) {
             int side = level.random.nextInt(4);
             double tangent = (level.random.nextDouble() - 0.5D) * 0.70D;
             double distance = 0.58D + level.random.nextDouble() * 0.10D;

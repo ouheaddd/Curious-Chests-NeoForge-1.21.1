@@ -103,5 +103,7 @@
   "advancements.curiouschests.trappers_chest.title": "Taschenzoo",
   "advancements.curiouschests.trappers_chest.description": "Erhalte eine Fallenstellertruhe. Neun Plätze. Keine Fragen.",
   "advancements.curiouschests.all_chests.title": "Kuriose Sammlung",
-  "advancements.curiouschests.all_chests.description": "Sammle alle zehn besonderen Truhen."
+  "advancements.curiouschests.all_chests.description": "Sammle alle zehn besonderen Truhen.",
+  "tooltip.curiouschests.witch.brew_hint": "Schleichen + Rechtsklick mit einer leeren Flasche: einen zufälligen Trank schöpfen, sobald der Sud fertig ist.",
+  "message.curiouschests.witch.brew_not_ready": "Der Hexensud ist noch nicht lange genug durchgezogen."
 }

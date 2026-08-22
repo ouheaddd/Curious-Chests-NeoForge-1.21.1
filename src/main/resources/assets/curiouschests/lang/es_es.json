@@ -103,5 +103,7 @@
   "advancements.curiouschests.trappers_chest.title": "Zoo de bolsillo",
   "advancements.curiouschests.trappers_chest.description": "Consigue un Cofre trampero. Nueve espacios. Cero preguntas.",
   "advancements.curiouschests.all_chests.title": "Colección curiosa",
-  "advancements.curiouschests.all_chests.description": "Reúne los diez cofres especiales."
+  "advancements.curiouschests.all_chests.description": "Reúne los diez cofres especiales.",
+  "tooltip.curiouschests.witch.brew_hint": "Agáchate + clic derecho con una botella vacía: saca una poción aleatoria cuando el brebaje esté listo.",
+  "message.curiouschests.witch.brew_not_ready": "El brebaje de bruja todavía no ha reposado lo suficiente."
 }

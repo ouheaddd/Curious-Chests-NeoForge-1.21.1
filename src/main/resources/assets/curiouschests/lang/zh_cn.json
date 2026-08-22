@@ -103,5 +103,7 @@
   "advancements.curiouschests.trappers_chest.title": "口袋动物园",
   "advancements.curiouschests.trappers_chest.description": "获得捕兽箱。九个位置。零个问题。",
   "advancements.curiouschests.all_chests.title": "奇趣收藏",
-  "advancements.curiouschests.all_chests.description": "收集全部十种特殊箱子。"
+  "advancements.curiouschests.all_chests.description": "收集全部十种特殊箱子。",
+  "tooltip.curiouschests.witch.brew_hint": "潜行 + 手持空玻璃瓶右键：药液酿好后可舀取一瓶随机药水。",
+  "message.curiouschests.witch.brew_not_ready": "女巫药液还没有浸泡好。"
 }

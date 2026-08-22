@@ -103,5 +103,7 @@
   "advancements.curiouschests.trappers_chest.title": "Zoológico de bolso",
   "advancements.curiouschests.trappers_chest.description": "Obtenha um Baú do Caçador. Nove espaços. Zero perguntas.",
   "advancements.curiouschests.all_chests.title": "Coleção curiosa",
-  "advancements.curiouschests.all_chests.description": "Colete todos os dez baús especiais."
+  "advancements.curiouschests.all_chests.description": "Colete todos os dez baús especiais.",
+  "tooltip.curiouschests.witch.brew_hint": "Agache + botão direito com um frasco vazio: retire uma poção aleatória quando a mistura estiver pronta.",
+  "message.curiouschests.witch.brew_not_ready": "A mistura da bruxa ainda não ficou em infusão por tempo suficiente."
 }

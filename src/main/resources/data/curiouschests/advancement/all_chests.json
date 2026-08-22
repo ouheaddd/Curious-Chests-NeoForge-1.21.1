@@ -2,7 +2,7 @@
   "parent": "curiouschests:root",
   "display": {
     "icon": {
-      "id": "curiouschests:trappers_chest",
+      "id": "minecraft:nether_star",
       "count": 1
     },
     "title": {

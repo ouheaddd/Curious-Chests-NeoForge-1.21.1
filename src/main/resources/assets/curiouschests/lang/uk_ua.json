@@ -103,5 +103,7 @@
   "advancements.curiouschests.trappers_chest.title": "Кишеньковий зоопарк",
   "advancements.curiouschests.trappers_chest.description": "Отримайте Скриню-ловця. Дев’ять місць. Нуль запитань.",
   "advancements.curiouschests.all_chests.title": "Цікава колекція",
-  "advancements.curiouschests.all_chests.description": "Зберіть усі десять особливих скринь."
+  "advancements.curiouschests.all_chests.description": "Зберіть усі десять особливих скринь.",
+  "tooltip.curiouschests.witch.brew_hint": "Shift + ПКМ порожньою пляшечкою: зачерпнути випадкове зілля, коли настій буде готовий.",
+  "message.curiouschests.witch.brew_not_ready": "Відьомська суміш ще не настоялася."
 }
