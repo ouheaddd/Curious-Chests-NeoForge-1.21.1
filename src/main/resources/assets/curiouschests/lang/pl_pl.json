@@ -76,5 +76,7 @@
   "container.curiouschests.trapper": "Skrzynia łapacza",
   "tooltip.curiouschests.trapper.lore_1": "Miedziana klatka, która nigdy nie wydaje się całkiem pusta.",
   "tooltip.curiouschests.trapper.lore_2": "Pobliskie stworzenia czują przyciąganie, zanim zobaczą, jak się otwiera.",
-  "tooltip.curiouschests.trapper.ability": "Łapie do 9 stworzeń w promieniu 5 bloków; kliknij stworzenie w GUI, aby je wypuścić."
+  "tooltip.curiouschests.trapper.ability": "Łapie do 9 stworzeń w promieniu 5 bloków; kliknij stworzenie w GUI, aby je wypuścić.",
+  "tooltip.curiouschests.trapper.captured": "Schwytane stworzenia: %s/9",
+  "tooltip.curiouschests.trapper.pack_hint": "Kucaj podczas niszczenia, aby zachować schwytane stworzenia."
 }

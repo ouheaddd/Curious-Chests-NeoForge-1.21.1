@@ -11,9 +11,11 @@ import com.overyourhead.curiouschests.client.model.EnderDispatchChestModel;
 import com.overyourhead.curiouschests.client.model.InfernalChestModel;
 import com.overyourhead.curiouschests.client.model.ResonantChestModel;
 import com.overyourhead.curiouschests.client.model.SculkSentinelChestModel;
+import com.overyourhead.curiouschests.client.model.TrappersChestModel;
 import com.overyourhead.curiouschests.client.model.WitchLiquidModel;
 import com.overyourhead.curiouschests.client.model.WitchsChestModel;
 import com.overyourhead.curiouschests.common.block.AbstractSpecialChestBlock;
+import com.overyourhead.curiouschests.common.block.TrapperChestBlock;
 import com.overyourhead.curiouschests.common.blockentity.SpecialChestBlockEntity;
 import com.overyourhead.curiouschests.common.chest.ChestKind;
 import net.minecraft.client.Minecraft;
@@ -59,6 +61,13 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
     private static final int WITCH_LIQUID_TICKS_PER_FRAME = 4;
     private static final ResourceLocation[] WITCH_LIQUID_FRAMES = createWitchLiquidFrames();
 
+    private static final ResourceLocation TRAPPER_TEXTURE = ResourceLocation.fromNamespaceAndPath(
+            CuriousChestsMod.MOD_ID, "textures/entity/chest/trappers_chest.png"
+    );
+    private static final ResourceLocation TRAPPER_ACTIVE_TEXTURE = ResourceLocation.fromNamespaceAndPath(
+            CuriousChestsMod.MOD_ID, "textures/entity/chest/trappers_chest_active.png"
+    );
+
     private static final int INFERNAL_FRAME_COUNT = 3;
     private static final int INFERNAL_TICKS_PER_FRAME = 8;
     private static final ResourceLocation[] INFERNAL_FRAMES = createInfernalFrames();
@@ -74,6 +83,7 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
     private final InfernalChestModel infernalModel;
     private final ResonantChestModel resonantModel;
     private final SculkSentinelChestModel sculkSentinelModel;
+    private final TrappersChestModel trapperModel;
     private final WitchsChestModel witchModel;
     private final WitchLiquidModel witchLiquidModel;
     private final ItemRenderer itemRenderer;
@@ -91,6 +101,7 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         infernalModel = new InfernalChestModel(context.bakeLayer(InfernalChestModel.LAYER_LOCATION));
         resonantModel = new ResonantChestModel(context.bakeLayer(ResonantChestModel.LAYER_LOCATION));
         sculkSentinelModel = new SculkSentinelChestModel(context.bakeLayer(SculkSentinelChestModel.LAYER_LOCATION));
+        trapperModel = new TrappersChestModel(context.bakeLayer(TrappersChestModel.LAYER_LOCATION));
         witchModel = new WitchsChestModel(context.bakeLayer(WitchsChestModel.LAYER_LOCATION));
         witchLiquidModel = new WitchLiquidModel(context.bakeLayer(WitchLiquidModel.LAYER_LOCATION));
         itemRenderer = Minecraft.getInstance().getItemRenderer();
@@ -105,11 +116,6 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
             int packedLight,
             int packedOverlay
     ) {
-        if (chest.kind() == ChestKind.TRAPPER) {
-            renderTrapperPreview(chest, partialTick, poseStack, bufferSource, packedLight);
-            return;
-        }
-
         BlockState state = chest.getBlockState();
         Direction facing = state.hasProperty(AbstractSpecialChestBlock.FACING)
                 ? state.getValue(AbstractSpecialChestBlock.FACING)
@@ -121,12 +127,16 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         poseStack.translate(-0.5F, -0.5F, -0.5F);
 
         float openness = chest.getOpenNess(partialTick);
+        if (chest.kind() == ChestKind.TRAPPER) {
+            openness = Math.max(openness, chest.getTrapperCaptureOpenNess(partialTick));
+        }
         openness = 1.0F - openness;
         openness = 1.0F - openness * openness * openness;
 
         ResourceLocation texture = switch (chest.kind()) {
             case SCULK_SENTINEL -> sculkSentinelFrame(chest);
             case INFERNAL -> infernalFrame(chest);
+            case TRAPPER -> trapperTexture(chest);
             default -> TEXTURES[chest.kind().ordinal()];
         };
         VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityCutoutNoCull(texture));
@@ -147,6 +157,8 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
             renderResonant(poseStack, bufferSource, consumer, openness, packedLight, packedOverlay, texture);
         } else if (chest.kind() == ChestKind.WITCH) {
             renderWitch(chest, poseStack, bufferSource, consumer, openness, packedLight, packedOverlay);
+        } else if (chest.kind() == ChestKind.TRAPPER) {
+            renderTrapper(poseStack, consumer, openness, packedLight, packedOverlay);
         } else {
             renderParts(poseStack, consumer, openness, packedLight, packedOverlay);
         }
@@ -158,6 +170,32 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         if (chest.kind() == ChestKind.ARCHIVIST) {
             renderArchivistBook(chest, partialTick, poseStack, bufferSource, openness, packedLight);
         }
+        if (chest.kind() == ChestKind.TRAPPER) {
+            renderTrapperPreview(chest, partialTick, poseStack, bufferSource, packedLight);
+        }
+    }
+
+
+    private static ResourceLocation trapperTexture(SpecialChestBlockEntity chest) {
+        BlockState state = chest.getBlockState();
+        return state.hasProperty(TrapperChestBlock.OCCUPIED) && state.getValue(TrapperChestBlock.OCCUPIED)
+                ? TRAPPER_ACTIVE_TEXTURE
+                : TRAPPER_TEXTURE;
+    }
+
+    private void renderTrapper(
+            PoseStack poseStack,
+            VertexConsumer consumer,
+            float openness,
+            int packedLight,
+            int packedOverlay
+    ) {
+        poseStack.pushPose();
+        poseStack.translate(0.5F, 1.5F, 0.5F);
+        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
+        poseStack.scale(-1.0F, -1.0F, 1.0F);
+        trapperModel.render(poseStack, consumer, openness, packedLight, packedOverlay);
+        poseStack.popPose();
     }
 
 

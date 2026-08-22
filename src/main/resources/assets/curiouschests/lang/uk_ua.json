@@ -76,5 +76,7 @@
   "container.curiouschests.trapper": "Скриня-ловець",
   "tooltip.curiouschests.trapper.lore_1": "Мідна клітка, що наче ніколи не буває цілком порожньою.",
   "tooltip.curiouschests.trapper.lore_2": "Істоти поруч відчувають потяг раніше, ніж бачать, як вона відкривається.",
-  "tooltip.curiouschests.trapper.ability": "Ловить до 9 істот у радіусі 5 блоків; натисни на спійману істоту в GUI, щоб випустити її."
+  "tooltip.curiouschests.trapper.ability": "Ловить до 9 істот у радіусі 5 блоків; натисни на спійману істоту в GUI, щоб випустити її.",
+  "tooltip.curiouschests.trapper.captured": "Спіймано істот: %s/9",
+  "tooltip.curiouschests.trapper.pack_hint": "Крадіться під час руйнування, щоб зберегти спійманих істот."
 }

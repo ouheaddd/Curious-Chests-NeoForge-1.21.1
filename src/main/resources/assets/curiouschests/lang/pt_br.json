@@ -76,5 +76,7 @@
   "container.curiouschests.trapper": "Baú de Captura",
   "tooltip.curiouschests.trapper.lore_1": "Uma gaiola de cobre que nunca parece totalmente vazia.",
   "tooltip.curiouschests.trapper.lore_2": "Criaturas próximas sentem a atração antes de vê-lo abrir.",
-  "tooltip.curiouschests.trapper.ability": "Captura até 9 criaturas em um raio de 5 blocos; clique em uma criatura na interface para soltá-la."
+  "tooltip.curiouschests.trapper.ability": "Captura até 9 criaturas em um raio de 5 blocos; clique em uma criatura na interface para soltá-la.",
+  "tooltip.curiouschests.trapper.captured": "Criaturas capturadas: %s/9",
+  "tooltip.curiouschests.trapper.pack_hint": "Agache-se ao quebrar para preservar as criaturas capturadas."
 }

@@ -1,6 +1,7 @@
 package com.overyourhead.curiouschests.common.item;
 
 import com.overyourhead.curiouschests.common.chest.ChestKind;
+import com.overyourhead.curiouschests.common.blockentity.SpecialChestBlockEntity;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
@@ -52,6 +53,13 @@ public final class SpecialChestBlockItem extends BlockItem {
         if (kind == ChestKind.ARCHIVIST) {
             tooltip.add(Component.translatable(prefix + ".catalog_hint")
                     .withStyle(ChatFormatting.DARK_PURPLE));
+        }
+        if (kind == ChestKind.TRAPPER) {
+            int captured = SpecialChestBlockEntity.getPackedTrapperEntityCount(stack);
+            tooltip.add(Component.translatable(prefix + ".captured", captured)
+                    .withStyle(captured > 0 ? ChatFormatting.AQUA : ChatFormatting.GRAY));
+            tooltip.add(Component.translatable(prefix + ".pack_hint")
+                    .withStyle(ChatFormatting.DARK_AQUA));
         }
         super.appendHoverText(stack, context, tooltip, flag);
     }

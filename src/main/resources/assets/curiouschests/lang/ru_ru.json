@@ -76,5 +76,7 @@
   "container.curiouschests.trapper": "Сундук-ловец",
   "tooltip.curiouschests.trapper.lore_1": "Медная клетка, которая будто никогда не бывает совсем пустой.",
   "tooltip.curiouschests.trapper.lore_2": "Существа рядом чувствуют притяжение раньше, чем видят, как он открывается.",
-  "tooltip.curiouschests.trapper.ability": "Ловит до 9 существ в радиусе 5 блоков; нажми на пойманное существо в GUI, чтобы выпустить его."
+  "tooltip.curiouschests.trapper.ability": "Ловит до 9 существ в радиусе 5 блоков; нажми на пойманное существо в GUI, чтобы выпустить его.",
+  "tooltip.curiouschests.trapper.captured": "Поймано существ: %s/9",
+  "tooltip.curiouschests.trapper.pack_hint": "Зажмите Shift при разрушении, чтобы сохранить пойманных существ."
 }

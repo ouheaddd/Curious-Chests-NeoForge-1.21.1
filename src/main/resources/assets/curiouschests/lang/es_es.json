@@ -76,5 +76,7 @@
   "container.curiouschests.trapper": "Cofre del trampero",
   "tooltip.curiouschests.trapper.lore_1": "Una jaula de cobre que nunca parece estar del todo vacía.",
   "tooltip.curiouschests.trapper.lore_2": "Las criaturas cercanas sienten el tirón antes de verlo abrirse.",
-  "tooltip.curiouschests.trapper.ability": "Captura hasta 9 criaturas en un radio de 5 bloques; haz clic en una criatura del GUI para liberarla."
+  "tooltip.curiouschests.trapper.ability": "Captura hasta 9 criaturas en un radio de 5 bloques; haz clic en una criatura del GUI para liberarla.",
+  "tooltip.curiouschests.trapper.captured": "Criaturas capturadas: %s/9",
+  "tooltip.curiouschests.trapper.pack_hint": "Agáchate al romperlo para conservar las criaturas capturadas."
 }

@@ -9,6 +9,7 @@ import com.overyourhead.curiouschests.client.model.EnderDispatchChestModel;
 import com.overyourhead.curiouschests.client.model.InfernalChestModel;
 import com.overyourhead.curiouschests.client.model.ResonantChestModel;
 import com.overyourhead.curiouschests.client.model.SculkSentinelChestModel;
+import com.overyourhead.curiouschests.client.model.TrappersChestModel;
 import com.overyourhead.curiouschests.client.model.WitchLiquidModel;
 import com.overyourhead.curiouschests.client.model.WitchsChestModel;
 import com.overyourhead.curiouschests.client.particle.WitchBurstParticle;
@@ -70,6 +71,10 @@ public final class CuriousChestsClient {
                     WitchsChestModel::createBodyLayer
             );
             event.registerLayerDefinition(
+                    TrappersChestModel.LAYER_LOCATION,
+                    TrappersChestModel::createBodyLayer
+            );
+            event.registerLayerDefinition(
                     WitchLiquidModel.LAYER_LOCATION,
                     WitchLiquidModel::createBodyLayer
             );
@@ -95,7 +100,8 @@ public final class CuriousChestsClient {
                     ModItems.SCULK_SENTINEL_CHEST_ITEM.get(),
                     ModItems.RESONANT_CHEST_ITEM.get(),
                     ModItems.ARCHIVISTS_CHEST_ITEM.get(),
-                    ModItems.WITCHS_CHEST_ITEM.get()
+                    ModItems.WITCHS_CHEST_ITEM.get(),
+                    ModItems.TRAPPERS_CHEST_ITEM.get()
             );
         }
 

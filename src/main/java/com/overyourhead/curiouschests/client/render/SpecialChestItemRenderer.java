@@ -11,8 +11,10 @@ import com.overyourhead.curiouschests.client.model.EnderDispatchChestModel;
 import com.overyourhead.curiouschests.client.model.InfernalChestModel;
 import com.overyourhead.curiouschests.client.model.ResonantChestModel;
 import com.overyourhead.curiouschests.client.model.SculkSentinelChestModel;
+import com.overyourhead.curiouschests.client.model.TrappersChestModel;
 import com.overyourhead.curiouschests.client.model.WitchLiquidModel;
 import com.overyourhead.curiouschests.client.model.WitchsChestModel;
+import com.overyourhead.curiouschests.common.blockentity.SpecialChestBlockEntity;
 import com.overyourhead.curiouschests.common.chest.ChestKind;
 import com.overyourhead.curiouschests.common.item.SpecialChestBlockItem;
 import net.minecraft.Util;
@@ -48,6 +50,13 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
             ))
             .toArray(ResourceLocation[]::new);
 
+    private static final ResourceLocation TRAPPER_TEXTURE = ResourceLocation.fromNamespaceAndPath(
+            CuriousChestsMod.MOD_ID, "textures/entity/chest/trappers_chest.png"
+    );
+    private static final ResourceLocation TRAPPER_ACTIVE_TEXTURE = ResourceLocation.fromNamespaceAndPath(
+            CuriousChestsMod.MOD_ID, "textures/entity/chest/trappers_chest_active.png"
+    );
+
     private static final int SCULK_FRAME_COUNT = 10;
     private static final int SCULK_TICKS_PER_FRAME = 3;
     private static final int WITCH_LIQUID_FRAME_COUNT = 16;
@@ -64,6 +73,7 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
     private InfernalChestModel infernalModel;
     private ResonantChestModel resonantModel;
     private SculkSentinelChestModel sculkSentinelModel;
+    private TrappersChestModel trapperModel;
     private WitchsChestModel witchModel;
     private WitchLiquidModel witchLiquidModel;
     private ItemRenderer itemRenderer;
@@ -89,6 +99,7 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
         infernalModel = new InfernalChestModel(models.bakeLayer(InfernalChestModel.LAYER_LOCATION));
         resonantModel = new ResonantChestModel(models.bakeLayer(ResonantChestModel.LAYER_LOCATION));
         sculkSentinelModel = new SculkSentinelChestModel(models.bakeLayer(SculkSentinelChestModel.LAYER_LOCATION));
+        trapperModel = new TrappersChestModel(models.bakeLayer(TrappersChestModel.LAYER_LOCATION));
         witchModel = new WitchsChestModel(models.bakeLayer(WitchsChestModel.LAYER_LOCATION));
         witchLiquidModel = new WitchLiquidModel(models.bakeLayer(WitchLiquidModel.LAYER_LOCATION));
         itemRenderer = Minecraft.getInstance().getItemRenderer();
@@ -120,7 +131,11 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
         }
 
         ChestKind kind = chestItem.kind();
-        ResourceLocation texture = textureFor(kind);
+        ResourceLocation texture = kind == ChestKind.TRAPPER
+                ? (SpecialChestBlockEntity.getPackedTrapperEntityCount(stack) > 0
+                    ? TRAPPER_ACTIVE_TEXTURE
+                    : TRAPPER_TEXTURE)
+                : textureFor(kind);
         VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityCutoutNoCull(texture));
 
         switch (kind) {
@@ -143,6 +158,8 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
             case RESONANT -> renderResonant(
                     poseStack, bufferSource, consumer, texture, packedLight, packedOverlay, displayContext);
             case WITCH -> renderWitch(poseStack, bufferSource, consumer, packedLight, packedOverlay);
+            case TRAPPER -> renderCustomModel(poseStack, () ->
+                    trapperModel.render(poseStack, consumer, 0.0F, packedLight, packedOverlay));
             case ARCHIVIST -> {
                 renderVanillaChest(poseStack, consumer, packedLight, packedOverlay);
                 renderArchivistBook(poseStack, bufferSource, packedLight);

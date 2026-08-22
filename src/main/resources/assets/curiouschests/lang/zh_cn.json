@@ -76,5 +76,7 @@
   "container.curiouschests.trapper": "捕获者箱",
   "tooltip.curiouschests.trapper.lore_1": "一座仿佛永远不会真正空荡的铜制牢笼。",
   "tooltip.curiouschests.trapper.lore_2": "附近的生物会在它开启之前先感受到牵引。",
-  "tooltip.curiouschests.trapper.ability": "可捕获5格范围内最多9只生物；在界面中点击已捕获的生物即可释放。"
+  "tooltip.curiouschests.trapper.ability": "可捕获5格范围内最多9只生物；在界面中点击已捕获的生物即可释放。",
+  "tooltip.curiouschests.trapper.captured": "已捕获生物：%s/9",
+  "tooltip.curiouschests.trapper.pack_hint": "潜行时破坏可保留已捕获的生物。"
 }

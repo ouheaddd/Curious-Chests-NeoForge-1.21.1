@@ -14,9 +14,8 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 /**
- * The first-pass Trapper uses the vanilla Vault block model as placeholder art.
- * OCCUPIED switches between the inactive and active Vault models while the real
- * captured-entity data lives in SpecialChestBlockEntity.
+ * Trapper chest block. OCCUPIED selects the active texture in the block-entity
+ * renderer while captured-entity data lives in SpecialChestBlockEntity.
  */
 public final class TrapperChestBlock extends AbstractSpecialChestBlock {
     public static final MapCodec<TrapperChestBlock> CODEC = simpleCodec(TrapperChestBlock::new);
@@ -45,15 +44,11 @@ public final class TrapperChestBlock extends AbstractSpecialChestBlock {
 
     @Override
     protected RenderShape getRenderShape(BlockState state) {
-        // Placeholder: let the normal block renderer draw minecraft:block/vault
-        // while our block-entity renderer draws the rotating trapped creature.
-        return RenderShape.MODEL;
+        return RenderShape.ENTITYBLOCK_ANIMATED;
     }
 
     @Override
     protected VoxelShape getShape(BlockState state, BlockGetter level, net.minecraft.core.BlockPos pos, CollisionContext context) {
-        // The placeholder Vault model is a full block, unlike the inset chest
-        // collision inherited by the other Curious Chests.
-        return Block.box(0.0D, 0.0D, 0.0D, 16.0D, 16.0D, 16.0D);
+        return super.getShape(state, level, pos, context);
     }
 }

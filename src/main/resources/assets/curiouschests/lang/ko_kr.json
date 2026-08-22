@@ -76,5 +76,7 @@
   "container.curiouschests.trapper": "포획자의 상자",
   "tooltip.curiouschests.trapper.lore_1": "완전히 비어 있는 법이 없는 듯한 구리 우리입니다.",
   "tooltip.curiouschests.trapper.lore_2": "주변 생물은 상자가 열리기 전부터 끌어당기는 힘을 느낍니다.",
-  "tooltip.curiouschests.trapper.ability": "5블록 안의 생물을 최대 9마리 포획합니다. GUI에서 포획된 생물을 클릭하면 풀어줍니다."
+  "tooltip.curiouschests.trapper.ability": "5블록 안의 생물을 최대 9마리 포획합니다. GUI에서 포획된 생물을 클릭하면 풀어줍니다.",
+  "tooltip.curiouschests.trapper.captured": "포획한 생물: %s/9",
+  "tooltip.curiouschests.trapper.pack_hint": "웅크린 채로 부수면 포획한 생물을 보존합니다."
 }

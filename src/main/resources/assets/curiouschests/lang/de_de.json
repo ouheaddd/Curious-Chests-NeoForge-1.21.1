@@ -76,5 +76,7 @@
   "container.curiouschests.trapper": "Fängertruhe",
   "tooltip.curiouschests.trapper.lore_1": "Ein Kupferkäfig, der nie ganz leer zu sein scheint.",
   "tooltip.curiouschests.trapper.lore_2": "Kreaturen in der Nähe spüren den Sog, bevor sie ihn öffnen sehen.",
-  "tooltip.curiouschests.trapper.ability": "Fängt bis zu 9 Kreaturen im Umkreis von 5 Blöcken; klicke im GUI auf eine Kreatur, um sie freizulassen."
+  "tooltip.curiouschests.trapper.ability": "Fängt bis zu 9 Kreaturen im Umkreis von 5 Blöcken; klicke im GUI auf eine Kreatur, um sie freizulassen.",
+  "tooltip.curiouschests.trapper.captured": "Gefangene Kreaturen: %s/9",
+  "tooltip.curiouschests.trapper.pack_hint": "Beim Abbauen schleichen, um gefangene Kreaturen zu bewahren."
 }

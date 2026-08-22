@@ -76,5 +76,7 @@
   "container.curiouschests.trapper": "Trapper's Chest",
   "tooltip.curiouschests.trapper.lore_1": "A copper cage that is never quite empty.",
   "tooltip.curiouschests.trapper.lore_2": "Nearby creatures feel the pull before they see it open.",
-  "tooltip.curiouschests.trapper.ability": "Captures up to 9 nearby creatures within 5 blocks; click a captured creature in the GUI to release it."
+  "tooltip.curiouschests.trapper.ability": "Captures up to 9 nearby creatures within 5 blocks; click a captured creature in the GUI to release it.",
+  "tooltip.curiouschests.trapper.captured": "Captured creatures: %s/9",
+  "tooltip.curiouschests.trapper.pack_hint": "Sneak while breaking to preserve captured creatures."
 }

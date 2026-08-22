@@ -76,5 +76,7 @@
   "container.curiouschests.trapper": "Coffre du piégeur",
   "tooltip.curiouschests.trapper.lore_1": "Une cage de cuivre qui ne semble jamais vraiment vide.",
   "tooltip.curiouschests.trapper.lore_2": "Les créatures proches sentent l'attraction avant de le voir s'ouvrir.",
-  "tooltip.curiouschests.trapper.ability": "Capture jusqu'à 9 créatures dans un rayon de 5 blocs ; cliquez sur une créature dans l'interface pour la libérer."
+  "tooltip.curiouschests.trapper.ability": "Capture jusqu'à 9 créatures dans un rayon de 5 blocs ; cliquez sur une créature dans l'interface pour la libérer.",
+  "tooltip.curiouschests.trapper.captured": "Créatures capturées : %s/9",
+  "tooltip.curiouschests.trapper.pack_hint": "Accroupissez-vous en le cassant pour conserver les créatures capturées."
 }

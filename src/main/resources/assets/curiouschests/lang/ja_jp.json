@@ -76,5 +76,7 @@
   "container.curiouschests.trapper": "トラッパーのチェスト",
   "tooltip.curiouschests.trapper.lore_1": "決して完全には空にならないように見える銅の檻。",
   "tooltip.curiouschests.trapper.lore_2": "近くのモブは、蓋が開く前からその引力を感じる。",
-  "tooltip.curiouschests.trapper.ability": "5ブロック以内のモブを最大9体捕獲する。GUIで捕獲したモブをクリックすると解放できる。"
+  "tooltip.curiouschests.trapper.ability": "5ブロック以内のモブを最大9体捕獲する。GUIで捕獲したモブをクリックすると解放できる。",
+  "tooltip.curiouschests.trapper.captured": "捕獲したMob: %s/9",
+  "tooltip.curiouschests.trapper.pack_hint": "スニークしながら壊すと、捕獲したMobを保持できます。"
 }

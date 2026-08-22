@@ -44,7 +44,12 @@ public final class ModBlocks {
     public static final DeferredBlock<TrapperChestBlock> TRAPPERS_CHEST = BLOCKS.registerBlock(
             "trappers_chest",
             TrapperChestBlock::new,
-            BlockBehaviour.Properties.ofFullCopy(Blocks.VAULT).noOcclusion().lightLevel(state -> state.hasProperty(TrapperChestBlock.OCCUPIED) && state.getValue(TrapperChestBlock.OCCUPIED) ? 4 : 0)
+            BlockBehaviour.Properties.ofFullCopy(Blocks.VAULT)
+                    .noOcclusion()
+                    // Vault itself is intentionally very resistant. The Trapper should
+                    // mine like a normal chest even while it uses the Vault as placeholder art.
+                    .strength(2.5F, 2.5F)
+                    .lightLevel(state -> state.hasProperty(TrapperChestBlock.OCCUPIED) && state.getValue(TrapperChestBlock.OCCUPIED) ? 4 : 0)
     );
 
     private ModBlocks() {}

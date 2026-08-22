@@ -53,7 +53,9 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.ItemContainerContents;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.entity.ChestLidController;
@@ -94,8 +96,10 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     private static final String RESONANCE_RECEIVED_TAG = "ResonanceReceivedSlots";
     private static final String DISPATCH_PREVIEW_TAG = "DispatchPreview";
     private static final String TRAPPER_ENTITIES_TAG = "TrapperEntities";
+    private static final String TRAPPER_CAPTURING_TAG = "TrapperCapturing";
 
     private final ChestLidController lidController = new ChestLidController();
+    private final ChestLidController trapperCaptureLidController = new ChestLidController();
     private final ContainerOpenersCounter openersCounter = new ContainerOpenersCounter() {
         @Override
         protected void onOpen(Level level, BlockPos pos, BlockState state) {
@@ -148,6 +152,11 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     private int trapperCaptureTicks;
     private int trapperCaptureCooldown;
     private double trapperCaptureOriginalScale = 1.0D;
+    private boolean trapperCaptureOriginalInvulnerable;
+    // Transient harvest intent: set when the player completes a sneak-break. It
+    // survives on the removed BlockEntity reference just long enough for the
+    // BlockDropsEvent to replace the ordinary empty chest drop with a packed one.
+    private boolean trapperPackOnBreak;
     // Final suction is a short, controlled visual phase that moves the target
     // through the chest collision after it has physically reached the mouth.
     // It is intentionally transient and is never persisted to NBT.
@@ -595,6 +604,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         if (kind() == ChestKind.TRAPPER) {
             CompoundTag tag = new CompoundTag();
             writeTrapperEntities(tag);
+            tag.putBoolean(TRAPPER_CAPTURING_TAG, trapperCaptureTargetId != null);
             return tag;
         }
         return super.getUpdateTag(registries);
@@ -626,7 +636,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
             return;
         }
         if (kind() == ChestKind.TRAPPER) {
-            readTrapperEntities(tag);
+            readTrapperClientTag(tag);
             return;
         }
         loadWithComponents(tag, registries);
@@ -651,7 +661,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
             return;
         }
         if (kind() == ChestKind.TRAPPER) {
-            readTrapperEntities(packet.getTag());
+            readTrapperClientTag(packet.getTag());
             return;
         }
         loadWithComponents(packet.getTag(), registries);
@@ -850,6 +860,17 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
             resonanceAttunementTicks = 0;
             resonanceTransferCooldown = ResonanceLogic.TRANSFER_DELAY_TICKS;
         }
+        if (kind() == ChestKind.TRAPPER) {
+            CustomData packedData = stack.get(DataComponents.CUSTOM_DATA);
+            if (packedData != null) {
+                readTrapperEntities(packedData.copyTag());
+            } else {
+                trappedEntities.clear();
+                trapperPreviewDirty = true;
+                trapperClientPreviewEntities.clear();
+            }
+            updateTrapperOccupiedState();
+        }
         setChanged();
     }
 
@@ -904,7 +925,24 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
 
         if (kind() == ChestKind.TRAPPER && level instanceof ServerLevel serverLevel) {
             TrapperLogic.cancelCapture(serverLevel, this);
-            releaseAllTrappedEntities(serverLevel);
+            if (!trapperPackOnBreak) {
+                if (!trappedEntities.isEmpty()) {
+                    // Ordinary destruction is the unsafe way to open the cage: a
+                    // cosmetic burst announces the failure and every prisoner escapes.
+                    serverLevel.playSound(null, pos, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.BLOCKS, 0.48F, 1.28F);
+                    serverLevel.sendParticles(
+                            ParticleTypes.EXPLOSION,
+                            pos.getX() + 0.5D, pos.getY() + 0.65D, pos.getZ() + 0.5D,
+                            1, 0.0D, 0.0D, 0.0D, 0.0D
+                    );
+                    serverLevel.sendParticles(
+                            ParticleTypes.REVERSE_PORTAL,
+                            pos.getX() + 0.5D, pos.getY() + 0.65D, pos.getZ() + 0.5D,
+                            36, 0.55D, 0.45D, 0.55D, 0.15D
+                    );
+                }
+                releaseAllTrappedEntities(serverLevel);
+            }
         }
 
         resonanceReceivedSlots.clear();
@@ -1780,13 +1818,19 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         return trapperCaptureOriginalScale;
     }
 
-    public void beginTrapperCapture(UUID targetId, double originalScale) {
+    public boolean wasTrapperCaptureOriginallyInvulnerable() {
+        return trapperCaptureOriginalInvulnerable;
+    }
+
+    public void beginTrapperCapture(UUID targetId, double originalScale, boolean originalInvulnerable) {
         if (kind() != ChestKind.TRAPPER) return;
         trapperCaptureTargetId = targetId;
         trapperCaptureTicks = 0;
         trapperCaptureOriginalScale = Math.max(0.0625D, originalScale);
+        trapperCaptureOriginalInvulnerable = originalInvulnerable;
         trapperFinalSuction = false;
         trapperFinalSuctionTicks = 0;
+        syncTrapperClientData();
     }
 
     public int advanceTrapperCaptureTicks() {
@@ -1811,9 +1855,17 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         trapperCaptureTargetId = null;
         trapperCaptureTicks = 0;
         trapperCaptureOriginalScale = 1.0D;
+        trapperCaptureOriginalInvulnerable = false;
         trapperFinalSuction = false;
         trapperFinalSuctionTicks = 0;
         trapperCaptureCooldown = Math.max(0, cooldownTicks);
+        syncTrapperClientData();
+    }
+
+    public float getTrapperCaptureOpenNess(float partialTick) {
+        return kind() == ChestKind.TRAPPER
+                ? trapperCaptureLidController.getOpenness(partialTick)
+                : 0.0F;
     }
 
     public int getTrappedEntityCount() {
@@ -1834,6 +1886,12 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         // could duplicate riders when the creature is later released.
         CompoundTag stored = entity.saveWithoutId(new CompoundTag());
         stored.putString("id", EntityType.getKey(entity.getType()).toString());
+        // Hurt/death timers are transient render/combat state. Keeping HurtTime can
+        // freeze a non-ticking GUI preview in Minecraft's red damage flash forever.
+        // Health and every persistent creature property remain untouched.
+        stored.remove("HurtTime");
+        stored.remove("DeathTime");
+        stored.remove("HurtByTimestamp");
 
         trappedEntities.add(stored.copy());
         trapperPreviewDirty = true;
@@ -1853,25 +1911,27 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         Direction facing = getBlockState().hasProperty(AbstractSpecialChestBlock.FACING)
                 ? getBlockState().getValue(AbstractSpecialChestBlock.FACING)
                 : Direction.NORTH;
-        double x = worldPosition.getX() + 0.5D + facing.getStepX() * 1.35D;
-        double y = worldPosition.getY() + 0.10D;
-        double z = worldPosition.getZ() + 0.5D + facing.getStepZ() * 1.35D;
 
         Entity restored = EntityType.loadEntityRecursive(stored, level, entity -> entity);
         if (!(restored instanceof LivingEntity living) || !TrapperLogic.canCapture(living)) return false;
-        restored.moveTo(x, y, z, facing.toYRot(), restored.getXRot());
+
+        // A manual GUI release remains strict: if the normal exit in front is
+        // blocked, keep the creature stored. An unsafe block break is different:
+        // search nearby air for each prisoner instead of force-spawning it inside
+        // a wall, which could suffocate mobs when the Trapper sits in a 1-block pit.
+        if (!positionReleasedTrapperEntity(level, restored, facing, !syncAfterRelease)) return false;
         restored.setDeltaMovement(Vec3.ZERO);
         restored.fallDistance = 0.0F;
 
-        // A normal GUI release only succeeds if the creature has room in front of
-        // the chest. Breaking the chest uses the same spawn point but is allowed to
-        // force-release so stored creatures can never be deleted by a blocked exit.
-        if (syncAfterRelease && !level.noCollision(restored, restored.getBoundingBox())) return false;
-
         trappedEntities.remove(index);
+        TrapperLogic.grantTrapperImmunity(living, TrapperLogic.RELEASE_IMMUNITY_TICKS);
         level.addFreshEntityWithPassengers(restored);
         level.playSound(null, worldPosition, SoundEvents.VAULT_EJECT_ITEM, SoundSource.BLOCKS, 0.82F, 1.0F);
-        level.sendParticles(ParticleTypes.REVERSE_PORTAL, x, y + 0.6D, z, 20, 0.35D, 0.45D, 0.35D, 0.10D);
+        level.sendParticles(
+                ParticleTypes.REVERSE_PORTAL,
+                restored.getX(), restored.getY() + restored.getBbHeight() * 0.45D, restored.getZ(),
+                20, 0.35D, 0.45D, 0.35D, 0.10D
+        );
         trapperPreviewDirty = true;
         setChanged();
         if (syncAfterRelease) {
@@ -1881,17 +1941,130 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         return true;
     }
 
+    private boolean positionReleasedTrapperEntity(
+            ServerLevel level,
+            Entity entity,
+            Direction facing,
+            boolean emergencySearch
+    ) {
+        float yaw = facing.toYRot();
+        float pitch = entity.getXRot();
+        Vec3 preferred = new Vec3(
+                worldPosition.getX() + 0.5D + facing.getStepX() * 1.35D,
+                worldPosition.getY() + 0.10D,
+                worldPosition.getZ() + 0.5D + facing.getStepZ() * 1.35D
+        );
+        if (tryTrapperReleasePosition(level, entity, preferred, yaw, pitch)) return true;
+        if (!emergencySearch) return false;
+
+        // An emergency break should preserve the local containment space whenever
+        // possible. The Trapper block itself has just disappeared, so its former
+        // block cell is usually the safest place in a pit or cage. Prefer that
+        // vertical shaft before searching outside the enclosure.
+        for (int yOffset = 0; yOffset <= 4; yOffset++) {
+            Vec3 shaftCandidate = new Vec3(
+                    worldPosition.getX() + 0.5D,
+                    worldPosition.getY() + yOffset + 0.10D,
+                    worldPosition.getZ() + 0.5D
+            );
+            if (tryTrapperReleasePosition(level, entity, shaftCandidate, yaw, pitch)) return true;
+        }
+
+        // Next search the nearby cavity from the bottom upward. Keeping Y as the
+        // outer loop means a mob stays in a trench/pit if any collision-safe cell
+        // exists there instead of immediately jumping to the surface outside.
+        for (int yOffset = 0; yOffset <= 4; yOffset++) {
+            for (int radius = 1; radius <= 4; radius++) {
+                for (int dx = -radius; dx <= radius; dx++) {
+                    for (int dz = -radius; dz <= radius; dz++) {
+                        if (Math.max(Math.abs(dx), Math.abs(dz)) != radius) continue;
+                        Vec3 candidate = new Vec3(
+                                worldPosition.getX() + dx + 0.5D,
+                                worldPosition.getY() + yOffset + 0.10D,
+                                worldPosition.getZ() + dz + 0.5D
+                        );
+                        if (tryTrapperReleasePosition(level, entity, candidate, yaw, pitch)) return true;
+                    }
+                }
+            }
+        }
+
+        // Extremely enclosed builds may have no collision-safe cell at all (for
+        // example a wide spider in a true 1x1 shaft). Only then fall back to the
+        // surface rather than force-spawning it in a wall and letting it suffocate.
+        int surfaceY = level.getHeight(
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                worldPosition.getX(),
+                worldPosition.getZ()
+        );
+        Vec3 surface = new Vec3(worldPosition.getX() + 0.5D, surfaceY + 0.05D, worldPosition.getZ() + 0.5D);
+        return tryTrapperReleasePosition(level, entity, surface, yaw, pitch);
+    }
+
+    private static boolean tryTrapperReleasePosition(
+            ServerLevel level,
+            Entity entity,
+            Vec3 position,
+            float yaw,
+            float pitch
+    ) {
+        entity.moveTo(position.x, position.y, position.z, yaw, pitch);
+        return level.getWorldBorder().isWithinBounds(entity.getBoundingBox())
+                && level.noCollision(entity, entity.getBoundingBox());
+    }
+
     private void releaseAllTrappedEntities(ServerLevel level) {
         // Breaking the prototype chest releases its prisoners instead of silently
         // deleting them or trying to serialize arbitrary entities into an ItemStack.
         // Do not mutate OCCUPIED while onRemove is already replacing the block.
         while (!trappedEntities.isEmpty()) {
             if (!releaseTrappedEntity(level, 0, false)) {
-                // Corrupt/unloadable NBT cannot be reconstructed, but valid entities
-                // are force-spawned even if the space in front is obstructed.
+                // Only genuinely corrupt/unloadable entity NBT reaches this path.
+                // Valid creatures get a collision-safe nearby/surface position.
                 trappedEntities.remove(0);
             }
         }
+    }
+
+    /** Marks the completed sneak-break as a safe portable harvest. */
+    public void armTrapperPackBreak(ServerLevel level) {
+        if (kind() != ChestKind.TRAPPER) return;
+        TrapperLogic.cancelCapture(level, this);
+        trapperPackOnBreak = true;
+    }
+
+    public boolean isTrapperPackOnBreak() {
+        return kind() == ChestKind.TRAPPER && trapperPackOnBreak;
+    }
+
+    /**
+     * Clears a stale intent if some later event handler denied the break. A successful
+     * harvest removes the BlockEntity synchronously before another server tick.
+     */
+    public void clearTrapperPackBreakIntent() {
+        trapperPackOnBreak = false;
+    }
+
+    /** Serializes the current prisoners into the non-stackable portable chest item. */
+    public ItemStack createPackedTrapperStack() {
+        if (kind() != ChestKind.TRAPPER) return ItemStack.EMPTY;
+        ItemStack packed = new ItemStack(ModItems.TRAPPERS_CHEST_ITEM.get());
+        if (!trappedEntities.isEmpty()) {
+            CompoundTag packedData = new CompoundTag();
+            writeTrapperEntities(packedData);
+            packed.set(DataComponents.CUSTOM_DATA, CustomData.of(packedData));
+            // Occupied portable cages must never merge with another item stack. Empty
+            // crafted Trappers retain the normal block-item stack size.
+            packed.set(DataComponents.MAX_STACK_SIZE, 1);
+        }
+        return packed;
+    }
+
+    public static int getPackedTrapperEntityCount(ItemStack stack) {
+        if (stack.isEmpty()) return 0;
+        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+        if (data == null) return 0;
+        return Math.min(TrapperLogic.CAPACITY, data.copyTag().getList(TRAPPER_ENTITIES_TAG, Tag.TAG_COMPOUND).size());
     }
 
     public void updateTrapperOccupiedState() {
@@ -1917,6 +2090,11 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
             list.add(trappedEntities.get(i).copy());
         }
         tag.put(TRAPPER_ENTITIES_TAG, list);
+    }
+
+    private void readTrapperClientTag(CompoundTag tag) {
+        readTrapperEntities(tag);
+        trapperCaptureLidController.shouldBeOpen(tag.getBoolean(TRAPPER_CAPTURING_TAG));
     }
 
     private void readTrapperEntities(CompoundTag tag) {
@@ -1971,6 +2149,9 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
 
     public static void clientTick(Level level, BlockPos pos, BlockState state, SpecialChestBlockEntity chest) {
         chest.lidController.tickLid();
+        if (chest.kind() == ChestKind.TRAPPER) {
+            chest.trapperCaptureLidController.tickLid();
+        }
         if (chest.kind() == ChestKind.ARCHIVIST) {
             chest.clientTickArchivist(level, pos);
         }
