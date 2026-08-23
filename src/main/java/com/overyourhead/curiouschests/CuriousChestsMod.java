@@ -1,9 +1,9 @@
 package com.overyourhead.curiouschests;
 
-import com.overyourhead.curiouschests.common.event.SentinelEvents;
-import com.overyourhead.curiouschests.common.event.StorageChestEvents;
-import com.overyourhead.curiouschests.common.event.TrapperEvents;
-import com.overyourhead.curiouschests.common.event.WitchChestEvents;
+import com.overyourhead.curiouschests.common.chest.sentinel.SentinelEvents;
+import com.overyourhead.curiouschests.common.chest.bottomless.StorageChestEvents;
+import com.overyourhead.curiouschests.common.chest.trapper.TrapperEvents;
+import com.overyourhead.curiouschests.common.chest.witch.WitchChestEvents;
 import com.overyourhead.curiouschests.core.ModBlockEntities;
 import com.overyourhead.curiouschests.core.ModBlocks;
 import com.overyourhead.curiouschests.core.ModCapabilities;

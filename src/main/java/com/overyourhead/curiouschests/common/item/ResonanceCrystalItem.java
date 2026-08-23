@@ -1,7 +1,7 @@
 package com.overyourhead.curiouschests.common.item;
 
 import com.overyourhead.curiouschests.core.ModDataComponents;
-import com.overyourhead.curiouschests.common.logic.ResonanceNames;
+import com.overyourhead.curiouschests.common.chest.resonant.ResonanceNames;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;

@@ -4,6 +4,8 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import com.overyourhead.curiouschests.CuriousChestsMod;
+import com.overyourhead.curiouschests.client.chest.archivist.ArchivistItemRenderer;
+import com.overyourhead.curiouschests.client.chest.witch.WitchItemRenderer;
 import com.overyourhead.curiouschests.client.model.BottomlessChestModel;
 import com.overyourhead.curiouschests.client.model.BuildersChestModel;
 import com.overyourhead.curiouschests.client.model.CollectorsChestModel;
@@ -12,29 +14,21 @@ import com.overyourhead.curiouschests.client.model.InfernalChestModel;
 import com.overyourhead.curiouschests.client.model.ResonantChestModel;
 import com.overyourhead.curiouschests.client.model.SculkSentinelChestModel;
 import com.overyourhead.curiouschests.client.model.TrappersChestModel;
-import com.overyourhead.curiouschests.client.model.WitchLiquidModel;
-import com.overyourhead.curiouschests.client.model.WitchsChestModel;
 import com.overyourhead.curiouschests.common.blockentity.SpecialChestBlockEntity;
 import com.overyourhead.curiouschests.common.chest.ChestKind;
 import com.overyourhead.curiouschests.common.item.SpecialChestBlockItem;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.model.BookModel;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.blockentity.EnchantTableRenderer;
 import net.minecraft.client.renderer.entity.ItemRenderer;
-import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.alchemy.PotionContents;
-import net.minecraft.world.item.alchemy.Potions;
 
 import java.util.Arrays;
 
@@ -59,13 +53,11 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
 
     private static final int SCULK_FRAME_COUNT = 10;
     private static final int SCULK_TICKS_PER_FRAME = 3;
-    private static final int WITCH_LIQUID_FRAME_COUNT = 16;
-    private static final int WITCH_LIQUID_TICKS_PER_FRAME = 4;
 
     private ModelPart bottom;
     private ModelPart lid;
     private ModelPart lock;
-    private BookModel archivistBookModel;
+    private ArchivistItemRenderer archivistItemRenderer;
     private BottomlessChestModel bottomlessModel;
     private BuildersChestModel buildersModel;
     private CollectorsChestModel collectorsModel;
@@ -74,8 +66,7 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
     private ResonantChestModel resonantModel;
     private SculkSentinelChestModel sculkSentinelModel;
     private TrappersChestModel trapperModel;
-    private WitchsChestModel witchModel;
-    private WitchLiquidModel witchLiquidModel;
+    private WitchItemRenderer witchItemRenderer;
     private ItemRenderer itemRenderer;
     private boolean initialized;
 
@@ -91,7 +82,7 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
         bottom = vanillaChest.getChild("bottom");
         lid = vanillaChest.getChild("lid");
         lock = vanillaChest.getChild("lock");
-        archivistBookModel = new BookModel(models.bakeLayer(ModelLayers.BOOK));
+        archivistItemRenderer = new ArchivistItemRenderer(models);
         bottomlessModel = new BottomlessChestModel(models.bakeLayer(BottomlessChestModel.LAYER_LOCATION));
         buildersModel = new BuildersChestModel(models.bakeLayer(BuildersChestModel.LAYER_LOCATION));
         collectorsModel = new CollectorsChestModel(models.bakeLayer(CollectorsChestModel.LAYER_LOCATION));
@@ -100,9 +91,8 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
         resonantModel = new ResonantChestModel(models.bakeLayer(ResonantChestModel.LAYER_LOCATION));
         sculkSentinelModel = new SculkSentinelChestModel(models.bakeLayer(SculkSentinelChestModel.LAYER_LOCATION));
         trapperModel = new TrappersChestModel(models.bakeLayer(TrappersChestModel.LAYER_LOCATION));
-        witchModel = new WitchsChestModel(models.bakeLayer(WitchsChestModel.LAYER_LOCATION));
-        witchLiquidModel = new WitchLiquidModel(models.bakeLayer(WitchLiquidModel.LAYER_LOCATION));
         itemRenderer = Minecraft.getInstance().getItemRenderer();
+        witchItemRenderer = new WitchItemRenderer(models, itemRenderer);
         initialized = true;
     }
 
@@ -157,12 +147,12 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
             }
             case RESONANT -> renderResonant(
                     poseStack, bufferSource, consumer, texture, packedLight, packedOverlay, displayContext);
-            case WITCH -> renderWitch(poseStack, bufferSource, consumer, packedLight, packedOverlay);
+            case WITCH -> witchItemRenderer.render(poseStack, bufferSource, consumer, packedLight, packedOverlay);
             case TRAPPER -> renderCustomModel(poseStack, () ->
                     trapperModel.render(poseStack, consumer, 0.0F, packedLight, packedOverlay));
             case ARCHIVIST -> {
                 renderVanillaChest(poseStack, consumer, packedLight, packedOverlay);
-                renderArchivistBook(poseStack, bufferSource, packedLight);
+                archivistItemRenderer.render(poseStack, bufferSource, packedLight);
             }
             default -> renderVanillaChest(poseStack, consumer, packedLight, packedOverlay);
         }
@@ -234,107 +224,7 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
         return LightTexture.pack(block, sky);
     }
 
-    private void renderWitch(
-            PoseStack poseStack,
-            MultiBufferSource bufferSource,
-            VertexConsumer chestConsumer,
-            int packedLight,
-            int packedOverlay
-    ) {
-        poseStack.pushPose();
-        poseStack.translate(0.5F, 1.5F, 0.5F);
-        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
-        poseStack.scale(-1.0F, -1.0F, 1.0F);
 
-        witchModel.render(poseStack, chestConsumer, 0.0F, packedLight, packedOverlay);
-
-        VertexConsumer liquidConsumer = bufferSource.getBuffer(RenderType.entityTranslucent(witchLiquidFrame()));
-        witchLiquidModel.render(poseStack, liquidConsumer, 0.0F, packedLight, packedOverlay);
-        renderWitchPotions(poseStack, bufferSource, packedLight, packedOverlay);
-        poseStack.popPose();
-    }
-
-    private void renderWitchPotions(
-            PoseStack poseStack,
-            MultiBufferSource bufferSource,
-            int packedLight,
-            int packedOverlay
-    ) {
-        for (int side = 0; side < 3; side++) {
-            for (int marker = 0; marker < 3; marker++) {
-                int slot = marker + side * 3;
-                poseStack.pushPose();
-                witchModel.applyPotionTransform(poseStack, side, marker);
-                poseStack.translate(0.0F, 0.11F, 0.0F);
-                if (side == 2) {
-                    poseStack.mulPose(Axis.YP.rotationDegrees(90.0F));
-                } else {
-                    poseStack.mulPose(Axis.YP.rotationDegrees(side == 0 ? 90.0F : -90.0F));
-                }
-                poseStack.scale(0.45F, 0.45F, 0.45F);
-                itemRenderer.renderStatic(
-                        itemPotion(slot),
-                        ItemDisplayContext.FIXED,
-                        packedLight,
-                        packedOverlay,
-                        poseStack,
-                        bufferSource,
-                        null,
-                        slot
-                );
-                poseStack.popPose();
-            }
-        }
-    }
-
-    private static ItemStack itemPotion(int slot) {
-        var item = switch (slot) {
-            case 1 -> Items.LINGERING_POTION;
-            case 3, 7 -> Items.SPLASH_POTION;
-            default -> Items.POTION;
-        };
-        return switch (slot) {
-            case 0 -> PotionContents.createItemStack(item, Potions.HEALING);
-            case 1 -> PotionContents.createItemStack(item, Potions.SWIFTNESS);
-            case 2 -> PotionContents.createItemStack(item, Potions.POISON);
-            case 3 -> PotionContents.createItemStack(item, Potions.STRENGTH);
-            case 4 -> PotionContents.createItemStack(item, Potions.REGENERATION);
-            case 5 -> PotionContents.createItemStack(item, Potions.NIGHT_VISION);
-            case 6 -> PotionContents.createItemStack(item, Potions.INVISIBILITY);
-            case 7 -> PotionContents.createItemStack(item, Potions.FIRE_RESISTANCE);
-            default -> PotionContents.createItemStack(item, Potions.WATER_BREATHING);
-        };
-    }
-
-    private void renderArchivistBook(
-            PoseStack poseStack,
-            MultiBufferSource bufferSource,
-            int packedLight
-    ) {
-        poseStack.pushPose();
-        // Same position language as the in-world Archivist, but static for an item icon.
-        poseStack.translate(0.5F, 1.03F, 0.5F);
-        // The vanilla enchanting-table BookModel has its own local orientation,
-        // independent from the chest item. Turn it a quarter-turn so the open book
-        // runs along the same visual axis as the Archivist chest in item displays.
-        poseStack.mulPose(Axis.YP.rotationDegrees(285.0F));
-        poseStack.mulPose(Axis.ZP.rotationDegrees(80.0F));
-        poseStack.scale(0.92F, 0.92F, 0.92F);
-
-        archivistBookModel.setupAnim(0.0F, 0.18F, 0.82F, 0.88F);
-        VertexConsumer bookConsumer = EnchantTableRenderer.BOOK_LOCATION.buffer(
-                bufferSource,
-                RenderType::entitySolid
-        );
-        archivistBookModel.render(
-                poseStack,
-                bookConsumer,
-                packedLight,
-                OverlayTexture.NO_OVERLAY,
-                0xFFFFFFFF
-        );
-        poseStack.popPose();
-    }
 
     private static ResourceLocation sculkFrame() {
         long gameTicks = Util.getMillis() / 50L;
@@ -345,14 +235,6 @@ public final class SpecialChestItemRenderer extends BlockEntityWithoutLevelRende
         );
     }
 
-    private static ResourceLocation witchLiquidFrame() {
-        long gameTicks = Util.getMillis() / 50L;
-        int frame = (int) ((gameTicks / WITCH_LIQUID_TICKS_PER_FRAME) % WITCH_LIQUID_FRAME_COUNT);
-        return ResourceLocation.fromNamespaceAndPath(
-                CuriousChestsMod.MOD_ID,
-                "textures/entity/chest/witch_liquid/witch_liquid_" + frame + ".png"
-        );
-    }
 
     private static final class ResonantCrystalVertexConsumer implements VertexConsumer {
         private final VertexConsumer delegate;

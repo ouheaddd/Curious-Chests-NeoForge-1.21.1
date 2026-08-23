@@ -3,14 +3,15 @@ package com.overyourhead.curiouschests.common.menu;
 import com.overyourhead.curiouschests.common.blockentity.SpecialChestBlockEntity;
 import com.overyourhead.curiouschests.common.chest.ChestKind;
 import com.overyourhead.curiouschests.common.chest.ChestRules;
-import com.overyourhead.curiouschests.common.logic.ArchivistLogic;
-import com.overyourhead.curiouschests.common.logic.InfernalLogic;
-import com.overyourhead.curiouschests.common.logic.ResonanceLogic;
-import com.overyourhead.curiouschests.common.logic.WitchLogic;
-import com.overyourhead.curiouschests.common.storage.BottomlessStorage;
+import com.overyourhead.curiouschests.common.chest.layout.ChestMenuLayout;
+import com.overyourhead.curiouschests.common.chest.layout.ChestClientContainers;
+import com.overyourhead.curiouschests.common.chest.archivist.ArchivistLogic;
+import com.overyourhead.curiouschests.common.chest.infernal.InfernalLogic;
+import com.overyourhead.curiouschests.common.chest.resonant.ResonanceLogic;
+import com.overyourhead.curiouschests.common.chest.witch.WitchLogic;
+import com.overyourhead.curiouschests.common.chest.bottomless.BottomlessStorage;
 import com.overyourhead.curiouschests.core.ModItems;
 import net.minecraft.world.Container;
-import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -41,103 +42,17 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
     private int buildersResultSlot = -1;
     private int playerSlotsStart = -1;
 
-    private static final int BUILDERS_CRAFT_X = 193;
-    private static final int BUILDERS_CRAFT_Y = 18;
-    private static final int BUILDERS_RESULT_X = 212;
-    private static final int BUILDERS_RESULT_Y = 99;
-
-    // GUI slot tuning for the redesigned container textures.
-    // Chest, player inventory and hotbar are intentionally independent so each
-    // group can be aligned to the artwork without moving the others.
-    private static final int ENDER_DISPATCH_CHEST_OFFSET_X = 0;
-    private static final int ENDER_DISPATCH_CHEST_OFFSET_Y = -7;
-    private static final int ENDER_DISPATCH_INVENTORY_OFFSET_X = 0;
-    private static final int ENDER_DISPATCH_INVENTORY_OFFSET_Y = -2;
-    private static final int ENDER_DISPATCH_HOTBAR_OFFSET_X = 0;
-    private static final int ENDER_DISPATCH_HOTBAR_OFFSET_Y = 1;
-
-    private static final int SCULK_SENTINEL_CHEST_OFFSET_X = 6;
-    private static final int SCULK_SENTINEL_CHEST_OFFSET_Y = 5;
-    private static final int SCULK_SENTINEL_INVENTORY_OFFSET_X = 7;
-    private static final int SCULK_SENTINEL_INVENTORY_OFFSET_Y = 2;
-    private static final int SCULK_SENTINEL_HOTBAR_OFFSET_X = 7;
-    private static final int SCULK_SENTINEL_HOTBAR_OFFSET_Y = 7;
-
-    private static final int RESONANT_CHEST_OFFSET_X = 8;
-    private static final int RESONANT_CHEST_OFFSET_Y = 2;
-    private static final int RESONANT_INVENTORY_OFFSET_X = 8;
-    private static final int RESONANT_INVENTORY_OFFSET_Y = 14;
-    private static final int RESONANT_HOTBAR_OFFSET_X = 8;
-    private static final int RESONANT_HOTBAR_OFFSET_Y = 20;
-
-    // Builder's redesigned player inventory artwork sits two pixels above the
-    // old slot positions. Keep chest/crafting/hotbar slots untouched and move
-    // only the three-row player inventory grid to match the texture.
-    private static final int BUILDERS_INVENTORY_OFFSET_Y = -2;
-
-    // Witch's redesigned 209x243 artwork shifts the complete interactive/content
-    // block together: chest slots, player inventory and hotbar.
-    private static final int WITCH_CONTENT_OFFSET_X = 16;
-    private static final int WITCH_CONTENT_OFFSET_Y = 16;
-
-    // Resonance Crystal uses its own attached widget at the top-right.
-    private static final int RESONANT_CRYSTAL_SLOT_X = 195;
-    private static final int RESONANT_CRYSTAL_SLOT_Y = 18;
-
     public static SpecialChestMenu client(MenuType<SpecialChestMenu> type, int id, Inventory inventory, ChestKind kind) {
         return new SpecialChestMenu(
                 type,
                 id,
                 inventory,
-                createClientContainer(kind),
+                ChestClientContainers.create(kind),
                 kind,
                 player -> true
         );
     }
 
-    private static Container createClientContainer(ChestKind kind) {
-        if (kind == ChestKind.WITCH) {
-            return new SimpleContainer(kind.slots()) {
-                @Override
-                public int getMaxStackSize() {
-                    return 64;
-                }
-
-                @Override
-                public int getMaxStackSize(ItemStack stack) {
-                    return WitchLogic.maxPerSlot(stack);
-                }
-            };
-        }
-        if (kind == ChestKind.ARCHIVIST) {
-            return new SimpleContainer(kind.slots()) {
-                @Override
-                public int getMaxStackSize() {
-                    return ArchivistLogic.MAX_BOOKS_PER_ENTRY;
-                }
-
-                @Override
-                public int getMaxStackSize(ItemStack stack) {
-                    return stack.is(Items.ENCHANTED_BOOK)
-                            ? ArchivistLogic.MAX_BOOKS_PER_ENTRY
-                            : super.getMaxStackSize(stack);
-                }
-            };
-        }
-        if (kind != ChestKind.BOTTOMLESS) return new SimpleContainer(kind.slots());
-
-        return new SimpleContainer(kind.slots()) {
-            @Override
-            public int getMaxStackSize() {
-                return BottomlessStorage.ABSOLUTE_SLOT_LIMIT;
-            }
-
-            @Override
-            public int getMaxStackSize(ItemStack stack) {
-                return BottomlessStorage.maxPerSlot(stack);
-            }
-        };
-    }
 
     public static SpecialChestMenu server(
             MenuType<SpecialChestMenu> type,
@@ -189,8 +104,8 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
                 addSlot(new Slot(
                         buildersCraftSlots,
                         craftingIndex,
-                        BUILDERS_CRAFT_X + column * 18,
-                        BUILDERS_CRAFT_Y + row * 18
+                        ChestMenuLayout.BUILDERS_CRAFT_X + column * 18,
+                        ChestMenuLayout.BUILDERS_CRAFT_Y + row * 18
                 ));
             }
         }
@@ -201,8 +116,8 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
                 buildersCraftSlots,
                 buildersResultSlots,
                 0,
-                BUILDERS_RESULT_X,
-                BUILDERS_RESULT_Y
+                ChestMenuLayout.BUILDERS_RESULT_X,
+                ChestMenuLayout.BUILDERS_RESULT_Y
         ));
     }
 
@@ -227,16 +142,16 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
                 int row = slot / 9;
                 addChestSlot(
                         slot,
-                        8 + column * 18 + chestSlotOffsetX(),
-                        18 + row * 18 + chestSlotOffsetY(),
+                        8 + column * 18 + ChestMenuLayout.chestOffsetX(kind),
+                        18 + row * 18 + ChestMenuLayout.chestOffsetY(kind),
                         true
                 );
             }
             addSlot(new Slot(
                     container,
                     ResonanceLogic.CRYSTAL_SLOT,
-                    RESONANT_CRYSTAL_SLOT_X,
-                    RESONANT_CRYSTAL_SLOT_Y
+                    ChestMenuLayout.RESONANT_CRYSTAL_SLOT_X,
+                    ChestMenuLayout.RESONANT_CRYSTAL_SLOT_Y
             ) {
                 @Override
                 public boolean mayPlace(ItemStack stack) {
@@ -265,8 +180,8 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
                 addSlot(new Slot(
                         container,
                         slotIndex,
-                        8 + column * 18 + WITCH_CONTENT_OFFSET_X,
-                        18 + row * 18 + WITCH_CONTENT_OFFSET_Y
+                        8 + column * 18 + ChestMenuLayout.WITCH_CONTENT_OFFSET_X,
+                        18 + row * 18 + ChestMenuLayout.WITCH_CONTENT_OFFSET_Y
                 ) {
                     @Override
                     public boolean mayPlace(ItemStack stack) {
@@ -356,70 +271,11 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
             int row = slot / 9;
             addChestSlot(
                     slot,
-                    8 + column * 18 + chestSlotOffsetX(),
-                    18 + row * 18 + chestSlotOffsetY(),
+                    8 + column * 18 + ChestMenuLayout.chestOffsetX(kind),
+                    18 + row * 18 + ChestMenuLayout.chestOffsetY(kind),
                     true
             );
         }
-    }
-
-    private int chestSlotOffsetX() {
-        return switch (kind) {
-            case ENDER_DISPATCH -> ENDER_DISPATCH_CHEST_OFFSET_X;
-            case SCULK_SENTINEL -> SCULK_SENTINEL_CHEST_OFFSET_X;
-            case RESONANT -> RESONANT_CHEST_OFFSET_X;
-            default -> 0;
-        };
-    }
-
-    private int chestSlotOffsetY() {
-        return switch (kind) {
-            case ENDER_DISPATCH -> ENDER_DISPATCH_CHEST_OFFSET_Y;
-            case SCULK_SENTINEL -> SCULK_SENTINEL_CHEST_OFFSET_Y;
-            case RESONANT -> RESONANT_CHEST_OFFSET_Y;
-            default -> 0;
-        };
-    }
-
-    private int playerInventorySlotOffsetX() {
-        return switch (kind) {
-            case ENDER_DISPATCH -> ENDER_DISPATCH_INVENTORY_OFFSET_X;
-            case SCULK_SENTINEL -> SCULK_SENTINEL_INVENTORY_OFFSET_X;
-            case RESONANT -> RESONANT_INVENTORY_OFFSET_X;
-            case WITCH -> WITCH_CONTENT_OFFSET_X;
-            default -> 0;
-        };
-    }
-
-    private int playerInventorySlotOffsetY() {
-        return switch (kind) {
-            case ENDER_DISPATCH -> ENDER_DISPATCH_INVENTORY_OFFSET_Y;
-            case SCULK_SENTINEL -> SCULK_SENTINEL_INVENTORY_OFFSET_Y;
-            case RESONANT -> RESONANT_INVENTORY_OFFSET_Y;
-            case BUILDERS -> BUILDERS_INVENTORY_OFFSET_Y;
-            case WITCH -> WITCH_CONTENT_OFFSET_Y;
-            default -> 0;
-        };
-    }
-
-    private int playerHotbarSlotOffsetX() {
-        return switch (kind) {
-            case ENDER_DISPATCH -> ENDER_DISPATCH_HOTBAR_OFFSET_X;
-            case SCULK_SENTINEL -> SCULK_SENTINEL_HOTBAR_OFFSET_X;
-            case RESONANT -> RESONANT_HOTBAR_OFFSET_X;
-            case WITCH -> WITCH_CONTENT_OFFSET_X;
-            default -> 0;
-        };
-    }
-
-    private int playerHotbarSlotOffsetY() {
-        return switch (kind) {
-            case ENDER_DISPATCH -> ENDER_DISPATCH_HOTBAR_OFFSET_Y;
-            case SCULK_SENTINEL -> SCULK_SENTINEL_HOTBAR_OFFSET_Y;
-            case RESONANT -> RESONANT_HOTBAR_OFFSET_Y;
-            case WITCH -> WITCH_CONTENT_OFFSET_Y;
-            default -> 0;
-        };
     }
 
     private void addChestSlot(int index, int x, int y, boolean allowPlacement) {
@@ -457,28 +313,13 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
     }
 
     private void addPlayerSlots(Inventory inventory) {
-        int yBase;
-        int xBase = 8;
-        if (kind == ChestKind.INFERNAL) {
-            yBase = 130;
-            xBase = 10;
-        } else if (kind == ChestKind.RESONANT) {
-            yBase = 85;
-        } else if (kind == ChestKind.ARCHIVIST || kind == ChestKind.WITCH) {
-            yBase = 139;
-        } else if (kind == ChestKind.TRAPPER) {
-            // The redesigned Trapper GUI is taller and places both the preview
-            // row and the player inventory 16 pixels lower than the original
-            // placeholder alignment.
-            yBase = 62;
-        } else {
-            yBase = 31 + kind.storageRows() * 18;
-        }
+        int yBase = ChestMenuLayout.playerInventoryBaseY(kind);
+        int xBase = ChestMenuLayout.playerInventoryBaseX(kind);
 
-        int inventoryX = xBase + playerInventorySlotOffsetX();
-        int inventoryY = yBase + playerInventorySlotOffsetY();
-        int hotbarX = xBase + playerHotbarSlotOffsetX();
-        int hotbarY = yBase + 58 + playerHotbarSlotOffsetY();
+        int inventoryX = xBase + ChestMenuLayout.inventoryOffsetX(kind);
+        int inventoryY = yBase + ChestMenuLayout.inventoryOffsetY(kind);
+        int hotbarX = xBase + ChestMenuLayout.hotbarOffsetX(kind);
+        int hotbarY = yBase + 58 + ChestMenuLayout.hotbarOffsetY(kind);
 
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {

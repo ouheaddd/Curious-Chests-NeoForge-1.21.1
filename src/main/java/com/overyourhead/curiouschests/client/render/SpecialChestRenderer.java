@@ -4,6 +4,9 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import com.overyourhead.curiouschests.CuriousChestsMod;
+import com.overyourhead.curiouschests.client.chest.archivist.ArchivistBookRenderer;
+import com.overyourhead.curiouschests.client.chest.trapper.TrapperWorldRenderer;
+import com.overyourhead.curiouschests.client.chest.witch.WitchWorldRenderer;
 import com.overyourhead.curiouschests.client.model.BottomlessChestModel;
 import com.overyourhead.curiouschests.client.model.BuildersChestModel;
 import com.overyourhead.curiouschests.client.model.CollectorsChestModel;
@@ -11,15 +14,10 @@ import com.overyourhead.curiouschests.client.model.EnderDispatchChestModel;
 import com.overyourhead.curiouschests.client.model.InfernalChestModel;
 import com.overyourhead.curiouschests.client.model.ResonantChestModel;
 import com.overyourhead.curiouschests.client.model.SculkSentinelChestModel;
-import com.overyourhead.curiouschests.client.model.TrappersChestModel;
-import com.overyourhead.curiouschests.client.model.WitchLiquidModel;
-import com.overyourhead.curiouschests.client.model.WitchsChestModel;
 import com.overyourhead.curiouschests.common.block.AbstractSpecialChestBlock;
-import com.overyourhead.curiouschests.common.block.TrapperChestBlock;
 import com.overyourhead.curiouschests.common.blockentity.SpecialChestBlockEntity;
 import com.overyourhead.curiouschests.common.chest.ChestKind;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.model.BookModel;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -27,19 +25,10 @@ import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
-import net.minecraft.client.renderer.blockentity.EnchantTableRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
-import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.Direction;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.NeutralMob;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.alchemy.PotionContents;
-import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.state.BlockState;
@@ -60,16 +49,7 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
     private static final int SCULK_SENTINEL_TICKS_PER_FRAME = 3;
     private static final ResourceLocation[] SCULK_SENTINEL_FRAMES = createSculkSentinelFrames();
 
-    private static final int WITCH_LIQUID_FRAME_COUNT = 16;
-    private static final int WITCH_LIQUID_TICKS_PER_FRAME = 4;
-    private static final ResourceLocation[] WITCH_LIQUID_FRAMES = createWitchLiquidFrames();
 
-    private static final ResourceLocation TRAPPER_TEXTURE = ResourceLocation.fromNamespaceAndPath(
-            CuriousChestsMod.MOD_ID, "textures/entity/chest/trappers_chest.png"
-    );
-    private static final ResourceLocation TRAPPER_ACTIVE_TEXTURE = ResourceLocation.fromNamespaceAndPath(
-            CuriousChestsMod.MOD_ID, "textures/entity/chest/trappers_chest_active.png"
-    );
 
     private static final int INFERNAL_FRAME_COUNT = 3;
     private static final int INFERNAL_TICKS_PER_FRAME = 8;
@@ -78,7 +58,7 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
     private final ModelPart bottom;
     private final ModelPart lid;
     private final ModelPart lock;
-    private final BookModel archivistBookModel;
+    private final ArchivistBookRenderer archivistBookRenderer;
     private final BottomlessChestModel bottomlessModel;
     private final BuildersChestModel buildersModel;
     private final CollectorsChestModel collectorsModel;
@@ -86,9 +66,8 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
     private final InfernalChestModel infernalModel;
     private final ResonantChestModel resonantModel;
     private final SculkSentinelChestModel sculkSentinelModel;
-    private final TrappersChestModel trapperModel;
-    private final WitchsChestModel witchModel;
-    private final WitchLiquidModel witchLiquidModel;
+    private final TrapperWorldRenderer trapperRenderer;
+    private final WitchWorldRenderer witchRenderer;
     private final ItemRenderer itemRenderer;
 
     public SpecialChestRenderer(BlockEntityRendererProvider.Context context) {
@@ -96,7 +75,7 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         bottom = root.getChild("bottom");
         lid = root.getChild("lid");
         lock = root.getChild("lock");
-        archivistBookModel = new BookModel(context.bakeLayer(ModelLayers.BOOK));
+        archivistBookRenderer = new ArchivistBookRenderer(context);
         bottomlessModel = new BottomlessChestModel(context.bakeLayer(BottomlessChestModel.LAYER_LOCATION));
         buildersModel = new BuildersChestModel(context.bakeLayer(BuildersChestModel.LAYER_LOCATION));
         collectorsModel = new CollectorsChestModel(context.bakeLayer(CollectorsChestModel.LAYER_LOCATION));
@@ -104,9 +83,8 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         infernalModel = new InfernalChestModel(context.bakeLayer(InfernalChestModel.LAYER_LOCATION));
         resonantModel = new ResonantChestModel(context.bakeLayer(ResonantChestModel.LAYER_LOCATION));
         sculkSentinelModel = new SculkSentinelChestModel(context.bakeLayer(SculkSentinelChestModel.LAYER_LOCATION));
-        trapperModel = new TrappersChestModel(context.bakeLayer(TrappersChestModel.LAYER_LOCATION));
-        witchModel = new WitchsChestModel(context.bakeLayer(WitchsChestModel.LAYER_LOCATION));
-        witchLiquidModel = new WitchLiquidModel(context.bakeLayer(WitchLiquidModel.LAYER_LOCATION));
+        trapperRenderer = new TrapperWorldRenderer(context);
+        witchRenderer = new WitchWorldRenderer(context);
         itemRenderer = Minecraft.getInstance().getItemRenderer();
     }
 
@@ -139,7 +117,7 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         ResourceLocation texture = switch (chest.kind()) {
             case SCULK_SENTINEL -> sculkSentinelFrame(chest);
             case INFERNAL -> infernalFrame(chest);
-            case TRAPPER -> trapperTexture(chest);
+            case TRAPPER -> trapperRenderer.texture(chest);
             default -> TEXTURES[chest.kind().ordinal()];
         };
         VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityCutoutNoCull(texture));
@@ -159,9 +137,9 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         } else if (chest.kind() == ChestKind.RESONANT) {
             renderResonant(poseStack, bufferSource, consumer, openness, packedLight, packedOverlay, texture);
         } else if (chest.kind() == ChestKind.WITCH) {
-            renderWitch(chest, poseStack, bufferSource, consumer, openness, packedLight, packedOverlay);
+            witchRenderer.render(chest, poseStack, bufferSource, consumer, openness, packedLight, packedOverlay);
         } else if (chest.kind() == ChestKind.TRAPPER) {
-            renderTrapper(poseStack, consumer, openness, packedLight, packedOverlay);
+            trapperRenderer.renderChest(poseStack, consumer, openness, packedLight, packedOverlay);
         } else {
             renderParts(poseStack, consumer, openness, packedLight, packedOverlay);
         }
@@ -171,122 +149,14 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
             renderEnderDispatchPreview(chest, partialTick, poseStack, bufferSource, packedLight, packedOverlay);
         }
         if (chest.kind() == ChestKind.ARCHIVIST) {
-            renderArchivistBook(chest, partialTick, poseStack, bufferSource, openness, packedLight);
+            archivistBookRenderer.render(chest, partialTick, poseStack, bufferSource, openness, packedLight);
         }
         if (chest.kind() == ChestKind.TRAPPER) {
-            renderTrapperPreview(chest, partialTick, poseStack, bufferSource, packedLight);
+            trapperRenderer.renderPreview(chest, partialTick, poseStack, bufferSource);
         }
     }
 
 
-    private static ResourceLocation trapperTexture(SpecialChestBlockEntity chest) {
-        BlockState state = chest.getBlockState();
-        return state.hasProperty(TrapperChestBlock.OCCUPIED) && state.getValue(TrapperChestBlock.OCCUPIED)
-                ? TRAPPER_ACTIVE_TEXTURE
-                : TRAPPER_TEXTURE;
-    }
-
-    private void renderTrapper(
-            PoseStack poseStack,
-            VertexConsumer consumer,
-            float openness,
-            int packedLight,
-            int packedOverlay
-    ) {
-        poseStack.pushPose();
-        poseStack.translate(0.5F, 1.5F, 0.5F);
-        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
-        poseStack.scale(-1.0F, -1.0F, 1.0F);
-        trapperModel.render(poseStack, consumer, openness, packedLight, packedOverlay);
-        poseStack.popPose();
-    }
-
-
-    private void renderTrapperPreview(
-            SpecialChestBlockEntity chest,
-            float partialTick,
-            PoseStack poseStack,
-            MultiBufferSource bufferSource,
-            int packedLight
-    ) {
-        Entity entity = chest.getTrapperPreviewEntity();
-        if (entity == null || chest.getLevel() == null) return;
-
-        float maxDimension = Math.max(0.7F, Math.max(entity.getBbWidth(), entity.getBbHeight()));
-        // 65% of the original preview size: smaller than the first prototype,
-        // but less tiny than the previous 50% pass.
-        float scale = Mth.clamp(0.364F / maxDimension, 0.08F, 0.47F);
-        long gameTime = chest.getLevel().getGameTime();
-
-        /*
-         * These are display dummies, not real ticking world entities. Feeding a
-         * changing tickCount/partialTick into the normal entity renderer makes a
-         * surprising number of vanilla renderers interpolate animation state that
-         * never actually advanced (walk limbs, head/body yaw, attack pose, etc.).
-         * That is the source of the visible 20 Hz "twitching". Keep the dummy in
-         * one deterministic pose and animate only the outer PoseStack.
-         */
-        freezeTrapperPreviewPose(entity);
-
-        // The only motion left is a frame-smooth, bounded display rotation and a
-        // very small hover. One full turn takes about 10 seconds.
-        float displayTime = (gameTime % 200L) + partialTick;
-        float rotation = displayTime * 1.80F;
-        float hover = Mth.sin((gameTime + partialTick) * 0.10F) * 0.025F;
-
-        poseStack.pushPose();
-        // Two model pixels lower than the previous placement: 2 / 16 = 0.125 block.
-        poseStack.translate(0.5F, 0.355F + hover, 0.5F);
-        poseStack.mulPose(Axis.YP.rotationDegrees(rotation));
-        poseStack.scale(scale, scale, scale);
-        poseStack.translate(0.0F, -entity.getBbHeight() * 0.5F, 0.0F);
-
-        var dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
-        dispatcher.setRenderShadow(false);
-        dispatcher.render(
-                entity,
-                0.0D,
-                0.0D,
-                0.0D,
-                0.0F,
-                0.0F,
-                poseStack,
-                bufferSource,
-                LightTexture.FULL_BRIGHT
-        );
-        dispatcher.setRenderShadow(true);
-        poseStack.popPose();
-    }
-
-    private static void freezeTrapperPreviewPose(Entity entity) {
-        entity.tickCount = 0;
-        entity.setDeltaMovement(0.0D, 0.0D, 0.0D);
-        entity.setYRot(0.0F);
-        entity.yRotO = 0.0F;
-        entity.setXRot(0.0F);
-        entity.xRotO = 0.0F;
-
-        if (entity instanceof LivingEntity living) {
-            living.yBodyRot = 0.0F;
-            living.yBodyRotO = 0.0F;
-            living.yHeadRot = 0.0F;
-            living.yHeadRotO = 0.0F;
-            living.attackAnim = 0.0F;
-            living.oAttackAnim = 0.0F;
-            living.hurtTime = 0;
-            living.deathTime = 0;
-            living.walkAnimation.setSpeed(0.0F);
-        }
-        if (entity instanceof Mob mob) {
-            mob.setTarget(null);
-        }
-        // Neutral mobs can retain persistent anger from their captured NBT. In
-        // particular an angry Enderman renderer deliberately adds random per-frame
-        // offsets, which looks exactly like a broken/jittering preview.
-        if (entity instanceof NeutralMob neutralMob) {
-            neutralMob.stopBeingAngry();
-        }
-    }
 
     private void renderEnderDispatchPreview(
             SpecialChestBlockEntity chest,
@@ -342,56 +212,6 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         poseStack.popPose();
     }
 
-    private void renderArchivistBook(
-            SpecialChestBlockEntity chest,
-            float partialTick,
-            PoseStack poseStack,
-            MultiBufferSource bufferSource,
-            float chestOpenness,
-            int packedLight
-    ) {
-        poseStack.pushPose();
-
-        float time = chest.getArchivistBookTime() + partialTick;
-        float hover = 0.10F + Mth.sin(time * 0.1F) * 0.01F;
-        float lidLift = chestOpenness * 0.16F;
-        poseStack.translate(0.5F, 0.91F + hover + lidLift, 0.5F);
-
-        float rotation = lerpRadians(partialTick, chest.getArchivistBookOldRot(), chest.getArchivistBookRot());
-        poseStack.mulPose(Axis.YP.rotationDegrees(-rotation * (180.0F / (float) Math.PI)));
-        poseStack.mulPose(Axis.ZP.rotationDegrees(80.0F));
-
-        float flip = Mth.lerp(partialTick, chest.getArchivistBookOldFlip(), chest.getArchivistBookFlip());
-        float rightFlip = Mth.frac(flip + 0.25F) * 1.6F - 0.3F;
-        float leftFlip = Mth.frac(flip + 0.75F) * 1.6F - 0.3F;
-        float open = Mth.lerp(partialTick, chest.getArchivistBookOldOpen(), chest.getArchivistBookOpen());
-
-        archivistBookModel.setupAnim(
-                time,
-                Mth.clamp(rightFlip, 0.0F, 1.0F),
-                Mth.clamp(leftFlip, 0.0F, 1.0F),
-                open
-        );
-        VertexConsumer bookConsumer = EnchantTableRenderer.BOOK_LOCATION.buffer(
-                bufferSource,
-                RenderType::entitySolid
-        );
-        archivistBookModel.render(
-                poseStack,
-                bookConsumer,
-                packedLight,
-                OverlayTexture.NO_OVERLAY,
-                0xFFFFFFFF
-        );
-        poseStack.popPose();
-    }
-
-    private static float lerpRadians(float partialTick, float from, float to) {
-        float delta = to - from;
-        while (delta >= Math.PI) delta -= (float) (Math.PI * 2.0D);
-        while (delta < -Math.PI) delta += (float) (Math.PI * 2.0D);
-        return from + partialTick * delta;
-    }
 
     private void renderStorageDisplayItem(
             SpecialChestBlockEntity chest,
@@ -562,99 +382,6 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         return LightTexture.pack(block, sky);
     }
 
-    private void renderWitch(
-            SpecialChestBlockEntity chest,
-            PoseStack poseStack,
-            MultiBufferSource bufferSource,
-            VertexConsumer chestConsumer,
-            float openness,
-            int packedLight,
-            int packedOverlay
-    ) {
-        poseStack.pushPose();
-        poseStack.translate(0.5F, 1.5F, 0.5F);
-        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
-        poseStack.scale(-1.0F, -1.0F, 1.0F);
-
-        witchModel.render(poseStack, chestConsumer, openness, packedLight, packedOverlay);
-
-        ResourceLocation liquidTexture = witchLiquidFrame(chest);
-        VertexConsumer liquidConsumer = bufferSource.getBuffer(RenderType.entityTranslucent(liquidTexture));
-        witchLiquidModel.render(poseStack, liquidConsumer, openness, packedLight, packedOverlay);
-
-        renderWitchPotions(chest, poseStack, bufferSource, packedLight, packedOverlay);
-        poseStack.popPose();
-    }
-
-    private void renderWitchPotions(
-            SpecialChestBlockEntity chest,
-            PoseStack poseStack,
-            MultiBufferSource bufferSource,
-            int packedLight,
-            int packedOverlay
-    ) {
-        for (int i = 0; i < 3; i++) {
-            renderWitchPotion(chest, poseStack, bufferSource, packedLight, packedOverlay, 0, i, createWitchDisplayPotion(chest, i));
-            renderWitchPotion(chest, poseStack, bufferSource, packedLight, packedOverlay, 1, i, createWitchDisplayPotion(chest, i + 3));
-            renderWitchPotion(chest, poseStack, bufferSource, packedLight, packedOverlay, 2, i, createWitchDisplayPotion(chest, i + 6));
-        }
-    }
-
-    private void renderWitchPotion(
-            SpecialChestBlockEntity chest,
-            PoseStack poseStack,
-            MultiBufferSource bufferSource,
-            int packedLight,
-            int packedOverlay,
-            int side,
-            int markerIndex,
-            ItemStack stack
-    ) {
-        poseStack.pushPose();
-        witchModel.applyPotionTransform(poseStack, side, markerIndex);
-
-        // The authored marker is centered on the 1px-thick shelf. Keep all three
-        // shelf directions using the same item scale and a tiny lift from the wood.
-        poseStack.translate(0.0F, 0.11F, 0.0F);
-        if (side == 2) {
-            // The rear shelf is now a child of base, just like left/right. It already
-            // inherits base's X orientation, so only cancel its authored -90-degree Y
-            // shelf turn. This leaves the flat potion upright and facing out the back.
-            poseStack.mulPose(Axis.YP.rotationDegrees(90.0F));
-        } else {
-            poseStack.mulPose(Axis.YP.rotationDegrees(side == 0 ? 90.0F : -90.0F));
-        }
-        poseStack.scale(0.45F, 0.45F, 0.45F);
-
-        itemRenderer.renderStatic(
-                stack,
-                ItemDisplayContext.FIXED,
-                packedLight,
-                packedOverlay,
-                poseStack,
-                bufferSource,
-                chest.getLevel(),
-                markerIndex + side * 3
-        );
-        poseStack.popPose();
-    }
-
-    private static ResourceLocation witchLiquidFrame(SpecialChestBlockEntity chest) {
-        long gameTime = chest.getLevel() == null ? 0L : chest.getLevel().getGameTime();
-        int frame = (int) ((gameTime / WITCH_LIQUID_TICKS_PER_FRAME) % WITCH_LIQUID_FRAME_COUNT);
-        return WITCH_LIQUID_FRAMES[frame];
-    }
-
-    private static ResourceLocation[] createWitchLiquidFrames() {
-        ResourceLocation[] frames = new ResourceLocation[WITCH_LIQUID_FRAME_COUNT];
-        for (int i = 0; i < frames.length; i++) {
-            frames[i] = ResourceLocation.fromNamespaceAndPath(
-                    CuriousChestsMod.MOD_ID,
-                    "textures/entity/chest/witch_liquid/witch_liquid_" + i + ".png"
-            );
-        }
-        return frames;
-    }
 
     private static ResourceLocation infernalFrame(SpecialChestBlockEntity chest) {
         long gameTime = chest.getLevel() == null ? 0L : chest.getLevel().getGameTime();
@@ -670,65 +397,6 @@ public final class SpecialChestRenderer implements BlockEntityRenderer<SpecialCh
         };
     }
 
-    private static ItemStack createWitchDisplayPotion(SpecialChestBlockEntity chest, int slotIndex) {
-        // Guarantee visual subtype variety on the left shelf without changing any colors,
-        // positions, scales, or other placement details.
-        if (slotIndex == 0) {
-            return createBaseWitchPotion(slotIndex, Items.POTION);
-        }
-        if (slotIndex == 1) {
-            return createBaseWitchPotion(slotIndex, Items.LINGERING_POTION);
-        }
-        if (slotIndex == 2) {
-            return createBaseWitchPotion(slotIndex, Items.POTION);
-        }
-
-        int lingeringSlot = selectWitchVariantSlot(chest, 0);
-        int splashSlotA = selectWitchVariantSlot(chest, 1);
-        int splashSlotB = selectWitchVariantSlot(chest, 2);
-
-        if (slotIndex == lingeringSlot) {
-            return createBaseWitchPotion(slotIndex, Items.LINGERING_POTION);
-        }
-        if (slotIndex == splashSlotA || slotIndex == splashSlotB) {
-            return createBaseWitchPotion(slotIndex, Items.SPLASH_POTION);
-        }
-        return createBaseWitchPotion(slotIndex, Items.POTION);
-    }
-
-    private static int selectWitchVariantSlot(SpecialChestBlockEntity chest, int variantIndex) {
-        long seed = chest.getBlockPos().asLong() ^ 0x5F3759DFL;
-        java.util.Random random = new java.util.Random(seed);
-        int lingering = random.nextInt(9);
-        int splashA;
-        do {
-            splashA = random.nextInt(9);
-        } while (splashA == lingering);
-        int splashB;
-        do {
-            splashB = random.nextInt(9);
-        } while (splashB == lingering || splashB == splashA);
-
-        return switch (variantIndex) {
-            case 0 -> lingering;
-            case 1 -> splashA;
-            default -> splashB;
-        };
-    }
-
-    private static ItemStack createBaseWitchPotion(int slotIndex, net.minecraft.world.item.Item item) {
-        return switch (slotIndex) {
-            case 0 -> PotionContents.createItemStack(item, Potions.HEALING);
-            case 1 -> PotionContents.createItemStack(item, Potions.SWIFTNESS);
-            case 2 -> PotionContents.createItemStack(item, Potions.POISON);
-            case 3 -> PotionContents.createItemStack(item, Potions.STRENGTH);
-            case 4 -> PotionContents.createItemStack(item, Potions.REGENERATION);
-            case 5 -> PotionContents.createItemStack(item, Potions.NIGHT_VISION);
-            case 6 -> PotionContents.createItemStack(item, Potions.INVISIBILITY);
-            case 7 -> PotionContents.createItemStack(item, Potions.FIRE_RESISTANCE);
-            default -> PotionContents.createItemStack(item, Potions.WATER_BREATHING);
-        };
-    }
 
     private static ResourceLocation sculkSentinelFrame(SpecialChestBlockEntity chest) {
         long gameTime = chest.getLevel() == null ? 0L : chest.getLevel().getGameTime();
