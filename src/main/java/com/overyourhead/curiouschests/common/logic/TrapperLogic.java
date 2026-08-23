@@ -82,7 +82,8 @@ public final class TrapperLogic {
         if (targetId != null) {
             if (!(level.getEntity(targetId) instanceof LivingEntity target)
                     || !canCapture(target)
-                    || target.distanceToSqr(Vec3.atCenterOf(pos)) > ABORT_RADIUS * ABORT_RADIUS) {
+                    || target.distanceToSqr(Vec3.atCenterOf(pos)) > ABORT_RADIUS * ABORT_RADIUS
+                    || !hasCaptureLineOfSight(level, pos, target)) {
                 abortCapture(level, pos, chest, targetId == null ? null : level.getEntity(targetId));
                 return;
             }
@@ -120,6 +121,11 @@ public final class TrapperLogic {
         );
         candidates.sort(Comparator.comparingDouble(entity -> entity.distanceToSqr(center)));
         for (LivingEntity candidate : candidates) {
+            // Do not even open / reserve a target through solid terrain. The physical
+            // suction moves in a straight line, so a creature hidden behind a wall
+            // would only get pinned against the obstacle and time out repeatedly.
+            if (!hasCaptureLineOfSight(level, pos, candidate)) continue;
+
             // Server block-entity ticks are ordered, so claiming here makes target
             // selection effectively atomic: the next Trapper that scans this tick
             // sees the lease and can move on to the next available creature.
@@ -429,6 +435,41 @@ public final class TrapperLogic {
             scale.setBaseValue(chest.getTrapperCaptureOriginalScale());
         }
         target.setInvulnerable(chest.wasTrapperCaptureOriginallyInvulnerable());
+    }
+
+    /**
+     * The Trapper only starts (and keeps) a capture while the creature has a
+     * direct visual/physical route to the mouth. Several heights are sampled so
+     * a mob standing one block lower can still be lifted over a ledge when its
+     * head is visible, while mobs fully hidden behind a wall are ignored.
+     */
+    private static boolean hasCaptureLineOfSight(ServerLevel level, BlockPos chestPos, LivingEntity target) {
+        Vec3 mouth = mouthPoint(chestPos, level.getBlockState(chestPos));
+        AABB box = target.getBoundingBox();
+        Vec3 center = box.getCenter();
+        Vec3 upperBody = new Vec3(target.getX(), box.minY + target.getBbHeight() * 0.82D, target.getZ());
+        Vec3 eyes = target.getEyePosition();
+
+        return isClearCaptureRay(level, chestPos, target, eyes, mouth)
+                || isClearCaptureRay(level, chestPos, target, upperBody, mouth)
+                || isClearCaptureRay(level, chestPos, target, center, mouth);
+    }
+
+    private static boolean isClearCaptureRay(
+            ServerLevel level,
+            BlockPos chestPos,
+            LivingEntity target,
+            Vec3 from,
+            Vec3 to
+    ) {
+        BlockHitResult hit = level.clip(new ClipContext(
+                from,
+                to,
+                ClipContext.Block.COLLIDER,
+                ClipContext.Fluid.NONE,
+                target
+        ));
+        return hit.getType() == HitResult.Type.MISS || hit.getBlockPos().equals(chestPos);
     }
 
     private static boolean canBeginFinalSuction(

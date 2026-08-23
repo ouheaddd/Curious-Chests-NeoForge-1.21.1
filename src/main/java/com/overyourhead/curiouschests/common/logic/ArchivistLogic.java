@@ -69,6 +69,12 @@ public final class ArchivistLogic {
         return !enchantments.isEmpty();
     }
 
+    /** Books that may live in the main archive storage. Plain books are stored
+     * normally; only enchanted books are valid for the floating processing slot. */
+    public static boolean isStorableBook(ItemStack stack) {
+        return stack.is(Items.BOOK) || isProcessableBook(stack);
+    }
+
     public static boolean processOne(ServerLevel level, BlockPos pos, SpecialChestBlockEntity chest) {
         ItemStack input = chest.getItem(INPUT_SLOT);
         if (!isProcessableBook(input)) return false;

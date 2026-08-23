@@ -701,7 +701,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
         return switch (kind()) {
             case BOTTOMLESS -> BottomlessStorage.ABSOLUTE_SLOT_LIMIT;
             case ARCHIVIST -> ArchivistLogic.MAX_BOOKS_PER_ENTRY;
-            case WITCH -> WitchLogic.MAX_POTIONS_PER_SLOT;
+            case WITCH -> 64;
             default -> super.getMaxStackSize();
         };
     }
@@ -709,7 +709,7 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
     @Override
     public int getMaxStackSize(ItemStack stack) {
         if (kind() == ChestKind.BOTTOMLESS) return BottomlessStorage.maxPerSlot(stack);
-        if (kind() == ChestKind.ARCHIVIST && stack.is(Items.ENCHANTED_BOOK)) {
+        if (kind() == ChestKind.ARCHIVIST && ArchivistLogic.isStorableBook(stack)) {
             return ArchivistLogic.MAX_BOOKS_PER_ENTRY;
         }
         if (kind() == ChestKind.WITCH && WitchLogic.isSupported(stack)) {
@@ -824,9 +824,12 @@ public final class SpecialChestBlockEntity extends BaseContainerBlockEntity impl
             }
         }
         if (kind() == ChestKind.ARCHIVIST) {
-            if (!ArchivistLogic.isProcessableBook(stack)) return false;
-            return slot == ArchivistLogic.INPUT_SLOT
-                    || (slot >= 0 && slot < ArchivistLogic.STORAGE_SLOTS);
+            if (slot == ArchivistLogic.INPUT_SLOT) {
+                return ArchivistLogic.isProcessableBook(stack);
+            }
+            return slot >= 0
+                    && slot < ArchivistLogic.STORAGE_SLOTS
+                    && ArchivistLogic.isStorableBook(stack);
         }
         if (kind() == ChestKind.WITCH) {
             return slot >= 0

@@ -25,14 +25,20 @@ public final class WitchLogic {
 
     private WitchLogic() {}
 
-    public static boolean isSupported(ItemStack stack) {
+    public static boolean isPotionStack(ItemStack stack) {
         return !stack.isEmpty()
                 && stack.has(DataComponents.POTION_CONTENTS)
                 && !(stack.getItem() instanceof ArrowItem);
     }
 
+    public static boolean isSupported(ItemStack stack) {
+        return isPotionStack(stack)
+                || stack.is(Items.GLASS_BOTTLE)
+                || stack.is(Items.DRAGON_BREATH);
+    }
+
     public static int maxPerSlot(ItemStack stack) {
-        return isSupported(stack) ? MAX_POTIONS_PER_SLOT : stack.getMaxStackSize();
+        return isPotionStack(stack) ? MAX_POTIONS_PER_SLOT : stack.getMaxStackSize();
     }
 
     /**

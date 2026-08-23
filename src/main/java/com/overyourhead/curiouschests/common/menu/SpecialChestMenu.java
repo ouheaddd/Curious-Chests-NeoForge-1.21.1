@@ -100,7 +100,7 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
             return new SimpleContainer(kind.slots()) {
                 @Override
                 public int getMaxStackSize() {
-                    return WitchLogic.MAX_POTIONS_PER_SLOT;
+                    return 64;
                 }
 
                 @Override
@@ -276,7 +276,7 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
 
                     @Override
                     public int getMaxStackSize() {
-                        return WitchLogic.MAX_POTIONS_PER_SLOT;
+                        return 64;
                     }
 
                     @Override
@@ -286,7 +286,12 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
 
                     @Override
                     public ItemStack remove(int amount) {
-                        return super.remove(Math.min(1, amount));
+                        if (getItem().isEmpty()) return ItemStack.EMPTY;
+                        // Potions keep the one-bottle-at-a-time behavior. Plain
+                        // glass bottles and dragon's breath behave like normal stacks.
+                        return WitchLogic.isPotionStack(getItem())
+                                ? super.remove(Math.min(1, amount))
+                                : super.remove(amount);
                     }
                 });
             }
@@ -301,7 +306,7 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
                 addSlot(new Slot(container, slotIndex, 8 + column * 18, 18 + row * 18) {
                     @Override
                     public boolean mayPlace(ItemStack stack) {
-                        return ArchivistLogic.isProcessableBook(stack)
+                        return ArchivistLogic.isStorableBook(stack)
                                 && container.canPlaceItem(slotIndex, stack);
                     }
 
@@ -318,7 +323,11 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
                     @Override
                     public ItemStack remove(int amount) {
                         if (getItem().isEmpty()) return ItemStack.EMPTY;
-                        return super.remove(Math.min(1, amount));
+                        // Enchanted books are virtual 64-stacks and are taken one at
+                        // a time. Ordinary books behave like a normal vanilla stack.
+                        return getItem().is(Items.BOOK)
+                                ? super.remove(amount)
+                                : super.remove(Math.min(1, amount));
                     }
                 });
             }
@@ -546,7 +555,7 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
                 return ItemStack.EMPTY;
             }
         } else if (kind == ChestKind.ARCHIVIST) {
-            if (!ArchivistLogic.isProcessableBook(source)
+            if (!ArchivistLogic.isStorableBook(source)
                     || !moveArchivistBooksToArchive(source)) {
                 return ItemStack.EMPTY;
             }
@@ -695,7 +704,7 @@ public final class SpecialChestMenu extends AbstractContainerMenu {
     }
 
     private boolean moveArchivistBooksToArchive(ItemStack source) {
-        if (!ArchivistLogic.isProcessableBook(source)) return false;
+        if (!ArchivistLogic.isStorableBook(source)) return false;
 
         boolean moved = false;
 
