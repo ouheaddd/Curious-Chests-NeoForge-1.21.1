@@ -1,6 +1,7 @@
 package com.overyourhead.curiouschests.common.item;
 
 import com.overyourhead.curiouschests.common.chest.ChestKind;
+import com.overyourhead.curiouschests.common.chest.shared.ChestSorting;
 import com.overyourhead.curiouschests.common.blockentity.SpecialChestBlockEntity;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -34,6 +35,13 @@ public final class SpecialChestBlockItem extends BlockItem {
         tooltip.add(Component.empty());
         tooltip.add(Component.translatable(prefix + ".ability")
                 .withStyle(ChatFormatting.GRAY));
+        if (ChestSorting.supports(kind)) {
+            tooltip.add(Component.translatable(
+                            "tooltip.curiouschests.sort_hint",
+                            Component.keybind("key.curiouschests.sort_chest")
+                    )
+                    .withStyle(ChatFormatting.GRAY));
+        }
         if (kind == ChestKind.BOTTOMLESS) {
             tooltip.add(Component.translatable(prefix + ".display_hint")
                     .withStyle(ChatFormatting.GRAY));

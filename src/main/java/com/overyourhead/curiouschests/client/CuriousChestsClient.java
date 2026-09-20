@@ -27,6 +27,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
@@ -115,6 +116,11 @@ public final class CuriousChestsClient {
             event.registerSpriteSet(ModParticles.WITCH_BURST.get(), WitchBurstParticle.Provider::new);
             event.registerSpriteSet(ModParticles.TRAPPER_LINK.get(), TrapperLinkParticle.Provider::new);
             event.registerSpriteSet(ModParticles.TRAPPER_ORBIT.get(), TrapperOrbitParticle.Provider::new);
+        }
+
+        @SubscribeEvent
+        public static void keyMappings(RegisterKeyMappingsEvent event) {
+            event.register(ModKeyMappings.SORT_CHEST);
         }
 
         @SubscribeEvent

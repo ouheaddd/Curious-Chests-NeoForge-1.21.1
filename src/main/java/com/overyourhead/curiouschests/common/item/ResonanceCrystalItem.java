@@ -56,6 +56,11 @@ public final class ResonanceCrystalItem extends Item {
             tooltip.add(Component.translatable("tooltip.curiouschests.resonance_crystal.attuned", resonanceName)
                     .withStyle(ChatFormatting.LIGHT_PURPLE));
         }
+        tooltip.add(Component.empty());
+        tooltip.add(Component.translatable("tooltip.curiouschests.resonance_crystal.mail_1")
+                .withStyle(ChatFormatting.DARK_PURPLE));
+        tooltip.add(Component.translatable("tooltip.curiouschests.resonance_crystal.mail_2")
+                .withStyle(ChatFormatting.DARK_PURPLE));
         super.appendHoverText(stack, context, tooltip, flag);
     }
 }

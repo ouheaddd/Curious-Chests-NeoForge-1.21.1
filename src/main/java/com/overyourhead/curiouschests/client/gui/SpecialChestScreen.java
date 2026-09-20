@@ -1,17 +1,22 @@
 package com.overyourhead.curiouschests.client.gui;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.overyourhead.curiouschests.CuriousChestsMod;
+import com.overyourhead.curiouschests.client.ModKeyMappings;
 import com.overyourhead.curiouschests.common.chest.ChestKind;
+import com.overyourhead.curiouschests.common.chest.shared.ChestSorting;
 import com.overyourhead.curiouschests.client.chest.trapper.TrapperScreenController;
 import com.overyourhead.curiouschests.client.chest.sentinel.SentinelLogController;
 import com.overyourhead.curiouschests.common.menu.SpecialChestMenu;
 import com.overyourhead.curiouschests.common.network.SentinelLogPayload;
+import com.overyourhead.curiouschests.common.network.SortChestPayload;
 import com.overyourhead.curiouschests.common.network.TrapperContentsPayload;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 
 /**
@@ -349,6 +354,14 @@ public final class SpecialChestScreen extends AbstractContainerScreen<SpecialChe
         if (menu.kind() == ChestKind.SCULK_SENTINEL && sentinelLogController.handleKeyPressed(keyCode, scanCode)) {
             return true;
         }
+
+        if (!sentinelLogController.isOpen()
+                && ChestSorting.supports(menu.kind())
+                && ModKeyMappings.SORT_CHEST.isActiveAndMatches(InputConstants.getKey(keyCode, scanCode))) {
+            PacketDistributor.sendToServer(new SortChestPayload(menu.containerId));
+            return true;
+        }
+
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
