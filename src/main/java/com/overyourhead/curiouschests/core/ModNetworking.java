@@ -1,8 +1,5 @@
 package com.overyourhead.curiouschests.core;
 
-import com.overyourhead.curiouschests.client.network.ClientArchivistCatalogHandler;
-import com.overyourhead.curiouschests.client.network.ClientSentinelLogHandler;
-import com.overyourhead.curiouschests.client.network.ClientTrapperContentsHandler;
 import com.overyourhead.curiouschests.common.blockentity.SpecialChestBlockEntity;
 import com.overyourhead.curiouschests.common.chest.ChestKind;
 import com.overyourhead.curiouschests.common.chest.shared.ChestSorting;
@@ -22,8 +19,30 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
+import java.util.Objects;
+import java.util.function.BiConsumer;
+
 public final class ModNetworking {
+    private static volatile BiConsumer<SentinelLogPayload, IPayloadContext> sentinelLogClientHandler = (payload, context) -> {};
+    private static volatile BiConsumer<ArchivistCatalogPayload, IPayloadContext> archivistCatalogClientHandler = (payload, context) -> {};
+    private static volatile BiConsumer<TrapperContentsPayload, IPayloadContext> trapperContentsClientHandler = (payload, context) -> {};
+
     private ModNetworking() {}
+
+    /**
+     * Installed only from the Dist.CLIENT event subscriber. Keeping the actual
+     * client handler classes out of this common class prevents dedicated-server
+     * class loading from ever resolving Minecraft GUI classes.
+     */
+    public static void installClientHandlers(
+            BiConsumer<SentinelLogPayload, IPayloadContext> sentinelHandler,
+            BiConsumer<ArchivistCatalogPayload, IPayloadContext> archivistHandler,
+            BiConsumer<TrapperContentsPayload, IPayloadContext> trapperHandler
+    ) {
+        sentinelLogClientHandler = Objects.requireNonNull(sentinelHandler);
+        archivistCatalogClientHandler = Objects.requireNonNull(archivistHandler);
+        trapperContentsClientHandler = Objects.requireNonNull(trapperHandler);
+    }
 
     public static void register(RegisterPayloadHandlersEvent event) {
         // Protocol 4 adds manual Curious Chest sorting.
@@ -41,12 +60,12 @@ public final class ModNetworking {
         registrar.playToClient(
                 SentinelLogPayload.TYPE,
                 SentinelLogPayload.STREAM_CODEC,
-                ClientSentinelLogHandler::handle
+                ModNetworking::handleSentinelLogClient
         );
         registrar.playToClient(
                 ArchivistCatalogPayload.TYPE,
                 ArchivistCatalogPayload.STREAM_CODEC,
-                ClientArchivistCatalogHandler::handle
+                ModNetworking::handleArchivistCatalogClient
         );
         registrar.playToServer(
                 RequestTrapperContentsPayload.TYPE,
@@ -61,8 +80,20 @@ public final class ModNetworking {
         registrar.playToClient(
                 TrapperContentsPayload.TYPE,
                 TrapperContentsPayload.STREAM_CODEC,
-                ClientTrapperContentsHandler::handle
+                ModNetworking::handleTrapperContentsClient
         );
+    }
+
+    private static void handleSentinelLogClient(SentinelLogPayload payload, IPayloadContext context) {
+        sentinelLogClientHandler.accept(payload, context);
+    }
+
+    private static void handleArchivistCatalogClient(ArchivistCatalogPayload payload, IPayloadContext context) {
+        archivistCatalogClientHandler.accept(payload, context);
+    }
+
+    private static void handleTrapperContentsClient(TrapperContentsPayload payload, IPayloadContext context) {
+        trapperContentsClientHandler.accept(payload, context);
     }
 
     private static void handleSortChest(SortChestPayload payload, IPayloadContext context) {

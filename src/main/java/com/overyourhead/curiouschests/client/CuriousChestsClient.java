@@ -2,6 +2,9 @@ package com.overyourhead.curiouschests.client;
 
 import com.overyourhead.curiouschests.CuriousChestsMod;
 import com.overyourhead.curiouschests.client.gui.SpecialChestScreen;
+import com.overyourhead.curiouschests.client.network.ClientArchivistCatalogHandler;
+import com.overyourhead.curiouschests.client.network.ClientSentinelLogHandler;
+import com.overyourhead.curiouschests.client.network.ClientTrapperContentsHandler;
 import com.overyourhead.curiouschests.client.model.BottomlessChestModel;
 import com.overyourhead.curiouschests.client.model.BuildersChestModel;
 import com.overyourhead.curiouschests.client.model.CollectorsChestModel;
@@ -21,6 +24,7 @@ import com.overyourhead.curiouschests.client.render.SpecialChestRenderer;
 import com.overyourhead.curiouschests.client.render.SpecialChestItemExtensions;
 import com.overyourhead.curiouschests.core.ModBlockEntities;
 import com.overyourhead.curiouschests.core.ModMenus;
+import com.overyourhead.curiouschests.core.ModNetworking;
 import com.overyourhead.curiouschests.core.ModParticles;
 import com.overyourhead.curiouschests.core.ModItems;
 import net.neoforged.api.distmarker.Dist;
@@ -31,6 +35,7 @@ import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
 import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 
 public final class CuriousChestsClient {
     private CuriousChestsClient() {}
@@ -38,6 +43,15 @@ public final class CuriousChestsClient {
     @EventBusSubscriber(modid = CuriousChestsMod.MOD_ID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.MOD)
     public static final class ModEvents {
         private ModEvents() {}
+
+        @SubscribeEvent
+        public static void payloadHandlers(RegisterPayloadHandlersEvent event) {
+            ModNetworking.installClientHandlers(
+                    ClientSentinelLogHandler::handle,
+                    ClientArchivistCatalogHandler::handle,
+                    ClientTrapperContentsHandler::handle
+            );
+        }
 
         @SubscribeEvent
         public static void modelLayers(EntityRenderersEvent.RegisterLayerDefinitions event) {
